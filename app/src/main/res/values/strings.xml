@@ -1,4 +1,4 @@
 <resources>
     <string name="app_name">Artech</string>
-    <string name="clock_in">Clock in</string>
+    <string name="clock">Clock</string>
 </resources>
