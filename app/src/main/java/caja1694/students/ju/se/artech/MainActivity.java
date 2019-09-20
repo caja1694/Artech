@@ -30,6 +30,8 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 
+
+
 public class MainActivity extends AppCompatActivity {
     final static double BREAK_ROOM = 0.1;
     final static double CONTROL_ROOM = 0.5;
@@ -39,13 +41,14 @@ public class MainActivity extends AppCompatActivity {
     CountDownTimer mCountDownTimer;
 
     private NotificationManagerCompat notificationManager;
-    private long mTimeLeftInMillis = timeLeft(30);
+
+
+    private long mTimeLeftInMillis = 5000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        createNotificationChannel();
 
         final Button clockInButton = findViewById(R.id.clock_in_button);
         clockInButton.setOnClickListener(new View.OnClickListener() {
@@ -60,22 +63,23 @@ public class MainActivity extends AppCompatActivity {
         TextView textView = findViewById(R.id.status);
         DatabaseReference myref = FirebaseDatabase.getInstance().getReference();
 
+        String NuclearTechnician = "NuclearTechnician1";
+
         String currentTime = LocalTime.now().toString();
         String currentDate = LocalDate.now().toString();
 
         if (!isClockedIn) {
             textView.setText("Clocked in");
-            myref.child(currentDate).child("Clocked in").push().setValue(currentTime);
+            myref.child(currentDate).child(NuclearTechnician).child("Clocked in").push().setValue(currentTime);
             isClockedIn = true;
             startTimer();
         }
         else {
             textView.setText("Clocked Out");
-            myref.child(currentDate).child("Clocked out").push().setValue(currentTime);
+            myref.child(currentDate).child(NuclearTechnician).child("Clocked out").push().setValue(currentTime);
             isClockedIn = false;
             stopTimer();
         }
-
     }
 
     void startTimer(){
@@ -121,16 +125,18 @@ public class MainActivity extends AppCompatActivity {
         int seconds = (int) mTimeLeftInMillis % 60000 / 1000;
 
         String timeText;
-
-        timeText = "" + hours;
-
+        if(hours < 10){
+            timeText = "0" + hours;
+        }
+        else {
+            timeText = "" + hours;
+        }
         if(minutes < 10){
             timeText += ":0" + minutes;
         }
         else{
             timeText += ":" + minutes;
         }
-
         if(seconds < 10){
             timeText += ":0" + seconds;
         }
@@ -139,8 +145,9 @@ public class MainActivity extends AppCompatActivity {
         }
         countdownText.setText(timeText);
     }
-    void sendWarning(){
 
+
+    void sendWarning(){
         String title = "WARNING";
         String body = "You have reached the radiation limit for today. Time to check out.";
 
@@ -156,15 +163,4 @@ public class MainActivity extends AppCompatActivity {
         notificationManager.notify(1, notification);
     }
 
-    private void createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            CharSequence name = "Channel1";
-            String description = "Warning";
-            int importance = NotificationManager.IMPORTANCE_HIGH;
-            NotificationChannel channel = new NotificationChannel("Channel1", name, importance);
-            channel.setDescription(description);
-            NotificationManager notificationManager = getSystemService(NotificationManager.class);
-            notificationManager.createNotificationChannel(channel);
-        }
-    }
 }
