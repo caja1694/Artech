@@ -1,4 +1,4 @@
-    apply plugin: 'com.android.application'
+apply plugin: 'com.android.application'
 apply plugin: 'com.google.gms.google-services'
 
 android {
@@ -25,8 +25,9 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.0.0-beta01'
     implementation 'androidx.constraintlayout:constraintlayout:1.1.2'
     implementation 'com.google.firebase:firebase-database:19.1.0'
+    implementation 'com.google.firebase:firebase-messaging:20.0.0'
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test:runner:1.1.0-alpha4'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.0-alpha4'
 }
-    apply plugin: 'com.google.gms.google-services'
+apply plugin: 'com.google.gms.google-services'

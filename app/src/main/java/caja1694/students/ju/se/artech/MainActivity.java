@@ -2,6 +2,7 @@ package caja1694.students.ju.se.artech;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.solver.widgets.Snapshot;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
@@ -37,11 +38,15 @@ public class MainActivity extends AppCompatActivity {
     final static double CONTROL_ROOM = 0.5;
     final static double REACTOR_ROOM = 1.6;
 
+    final static String NuclearTechnician = "NuclearTechnician1";
+
+    String currentTime = LocalTime.now().toString();
+    String currentDate = LocalDate.now().toString();
+
     Boolean isClockedIn = false;
     CountDownTimer mCountDownTimer;
 
     private NotificationManagerCompat notificationManager;
-
 
     private long mTimeLeftInMillis = 5000;
 
@@ -49,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
 
         final Button clockInButton = findViewById(R.id.clock_in_button);
         clockInButton.setOnClickListener(new View.OnClickListener() {
@@ -63,14 +69,11 @@ public class MainActivity extends AppCompatActivity {
         TextView textView = findViewById(R.id.status);
         DatabaseReference myref = FirebaseDatabase.getInstance().getReference();
 
-        String NuclearTechnician = "NuclearTechnician1";
-
-        String currentTime = LocalTime.now().toString();
-        String currentDate = LocalDate.now().toString();
 
         if (!isClockedIn) {
             textView.setText("Clocked in");
             myref.child(currentDate).child(NuclearTechnician).child("Clocked in").push().setValue(currentTime);
+            myref.child(currentDate).child(NuclearTechnician).child("Status").setValue("active");
             isClockedIn = true;
             startTimer();
         }
@@ -78,6 +81,8 @@ public class MainActivity extends AppCompatActivity {
             textView.setText("Clocked Out");
             myref.child(currentDate).child(NuclearTechnician).child("Clocked out").push().setValue(currentTime);
             isClockedIn = false;
+            DatabaseReference myRef = FirebaseDatabase.getInstance().getReference();
+            myRef.child(currentDate).child(NuclearTechnician).child("Status").setValue("inactive");
             stopTimer();
         }
     }
@@ -88,11 +93,26 @@ public class MainActivity extends AppCompatActivity {
             public void onTick(long millisUntilFinished) {
                 mTimeLeftInMillis = millisUntilFinished;
                 updateTimer();
-                System.out.println("Counting down");
+                System.out.println(millisUntilFinished);
+                if(millisToHours(mTimeLeftInMillis) == 0 && millisToMinutes(mTimeLeftInMillis) == 10 && millisToSeconds(mTimeLeftInMillis) == 0){
+                    sendWarning("10 Minutes Left", "You only have 10 minutes left until you have reached the critical radiation limit");
+                }
+                if(millisToHours(mTimeLeftInMillis) == 0 && millisToMinutes(mTimeLeftInMillis) == 5 && millisToSeconds(mTimeLeftInMillis) == 0)
+                {
+                    sendWarning("5 Minutes Left", "You only have 5 minutes left until you have reached the critical radiation limit");
+                }
+
+                if(millisToHours(mTimeLeftInMillis) == 0 && millisToMinutes(mTimeLeftInMillis) == 1 && millisToSeconds(mTimeLeftInMillis) == 0){
+                    sendWarning("1 Minutes Left", "You only have 1 minutes left until you have reached the critical radiation limit");
+                }
             }
             @Override
             public void onFinish() {
-                sendWarning();
+                sendWarning("WARNING", "You have reached the radiation limit for today. Time to check out.");
+                if(isClockedIn){
+                    DatabaseReference myRef = FirebaseDatabase.getInstance().getReference();
+                    myRef.child(currentDate).child(NuclearTechnician).child("Status").setValue("overstayed");
+                }
             }
         }.start();
 
@@ -116,13 +136,11 @@ public class MainActivity extends AppCompatActivity {
         return (long) timeLeft;
     }
 
-
-
     void updateTimer(){
         TextView countdownText = findViewById(R.id.countdownTimer);
-        int hours = (int) mTimeLeftInMillis / (60000 * 60);
-        int minutes = (int) (mTimeLeftInMillis / 60000) % 60;
-        int seconds = (int) mTimeLeftInMillis % 60000 / 1000;
+        int hours = millisToHours(mTimeLeftInMillis);
+        int minutes = millisToMinutes(mTimeLeftInMillis);
+        int seconds = millisToSeconds(mTimeLeftInMillis);
 
         String timeText;
         if(hours < 10){
@@ -147,9 +165,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    void sendWarning(){
-        String title = "WARNING";
-        String body = "You have reached the radiation limit for today. Time to check out.";
+    void sendWarning(String title, String body){
 
         notificationManager = NotificationManagerCompat.from(this);
 
@@ -162,5 +178,13 @@ public class MainActivity extends AppCompatActivity {
                 .build();
         notificationManager.notify(1, notification);
     }
-
+    int millisToHours(long millis){
+        return (int) mTimeLeftInMillis / (60000 * 60);
+    }
+    int millisToMinutes(long millis){
+        return (int) (mTimeLeftInMillis / 60000) % 60;
+    }
+    int millisToSeconds(long millis){
+        return (int) mTimeLeftInMillis % 60000 / 1000;
+    }
 }
