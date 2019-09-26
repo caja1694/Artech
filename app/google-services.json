@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "705237165957",
+    "firebase_url": "https://artechapp-c07cf.firebaseio.com",
+    "project_id": "artechapp-c07cf",
+    "storage_bucket": "artechapp-c07cf.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:705237165957:android:4b09c31f9b7173414e46ec",
+        "android_client_info": {
+          "package_name": "caja1694.students.ju.se.artech"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "705237165957-0tpq8m5si86j6h2n9u1k0p6jr3qsnvpn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "caja1694.students.ju.se.artech",
+            "certificate_hash": "9eb394082110fa034e96a8eb8f3b9fe5b94f5aea"
+          }
+        },
+        {
+          "client_id": "705237165957-a9946pr5cdbq1hgm5p9lml2affn6c3ug.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCjzq6Uy92BFqkiAM3sThslFSFcdvvMovo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "705237165957-a9946pr5cdbq1hgm5p9lml2affn6c3ug.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
