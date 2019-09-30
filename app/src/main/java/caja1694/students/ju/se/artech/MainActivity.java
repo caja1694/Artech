@@ -33,13 +33,12 @@ public class MainActivity extends AppCompatActivity {
     final static double CONTROL_ROOM = 0.5;
     final static double REACTOR_ROOM = 1.6;
 
-    final static Warning tenMinuteWarning = new Warning().TenMinuteWarning();
-    final static Warning fiveMinuteWarning = new Warning().FiveMinuteWarning();
-    final static Warning oneMinuteWarning = new Warning().OneMinuteWarning();
+
     final static Warning systemWideWarning = new Warning().SystemWideWarning();
 
-    final static String NuclearTechnician = "NuclearTechnician1";
+    Warning warning = new Warning();
 
+    final static String NuclearTechnician = "NuclearTechnician1";
     final static String OverstayedStatus = "OverstayedStatus";
 
 
@@ -54,7 +53,7 @@ public class MainActivity extends AppCompatActivity {
 
     private NotificationManagerCompat notificationManager;
 
-    TimeKeeper timeKeeper = new TimeKeeper(5000);
+    TimeKeeper timeKeeper = new TimeKeeper(3000);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,14 +85,14 @@ public class MainActivity extends AppCompatActivity {
                 updateTimer(timeKeeper.toString());
 
                 if(timeKeeper.timeLeftInSeconds() == 600){
-                    sendWarning(tenMinuteWarning);
+                    sendWarning(warning.createMinuteWarning("10"));
                 }
                 if(timeKeeper.timeLeftInSeconds() == 300)
                 {
-                    sendWarning(fiveMinuteWarning);
+                    sendWarning(warning.createMinuteWarning("5"));
                 }
                 if(timeKeeper.timeLeftInSeconds() == 60){
-                    sendWarning(oneMinuteWarning);
+                    sendWarning(warning.createMinuteWarning("1"));
                 }
             }
             @Override
@@ -117,7 +116,7 @@ public class MainActivity extends AppCompatActivity {
 
         double exposurePerMiliSecond = exposurePerSecond/1000;
 
-        double timeLeft = 500000/exposurePerMiliSecond;
+        double timeLeft = radiationLevels.getRadioationLimit()/exposurePerMiliSecond;
         return (long) timeLeft;
     }
 
@@ -165,7 +164,6 @@ public class MainActivity extends AppCompatActivity {
                     sendWarning(systemWideWarning);
                 }
             }
-
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
                 Toast.makeText(MainActivity.this, "Database error: "+databaseError, Toast.LENGTH_SHORT).show();

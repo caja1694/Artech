@@ -4,7 +4,7 @@ public class Radiation {
     private double reactorOutputPerSecond;
     private double roomCoefficient;
     private double protectionCoefficient;
-
+    private double radioationLimit = 500000;
 
     public Radiation(double reactorOutputPerSecond, double roomCoefficient, double protectionCoefficient){
         this.reactorOutputPerSecond = reactorOutputPerSecond;
@@ -14,6 +14,9 @@ public class Radiation {
 
     public double getUnitExposurePerSecond(){
         return (this.reactorOutputPerSecond * this.roomCoefficient) / this.protectionCoefficient;
+    }
+    public double getRadioationLimit(){
+        return this.radioationLimit;
     }
 
     public double getReactorOutputPerSecond() {

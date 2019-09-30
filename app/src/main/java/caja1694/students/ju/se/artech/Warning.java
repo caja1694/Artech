@@ -15,20 +15,9 @@ public class Warning {
         this.body = "Someone has overstayed the radiation time limit!";
         return this;
     }
-
-    public Warning TenMinuteWarning(){
-        this.title = "10 minutes left";
-        this.body = "You have 10 minutes until you have reached the daily radiation limit";
-        return this;
-    }
-    public Warning FiveMinuteWarning(){
-        this.title = "5 minutes left";
-        this.body = "You have 5 minutes until you have reached the daily radiation limit";
-        return this;
-    }
-    public Warning OneMinuteWarning(){
-        this.title = "1 minutes left";
-        this.body = "You have 1 minutes until you have reached the daily radiation limit";
+    public Warning createMinuteWarning(String minutes){
+        this.title = "" + minutes + " minutes left";
+        this.body = "You have "+ minutes + " minutes until you have reached the daily radiation limit";
         return this;
     }
 
