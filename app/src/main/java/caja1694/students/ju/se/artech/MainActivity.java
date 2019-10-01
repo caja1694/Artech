@@ -7,6 +7,7 @@ import androidx.core.app.NotificationManagerCompat;
 
 import android.annotation.TargetApi;
 import android.app.Notification;
+import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
@@ -33,7 +34,6 @@ public class MainActivity extends AppCompatActivity {
     final static double CONTROL_ROOM = 0.5;
     final static double REACTOR_ROOM = 1.6;
 
-
     final static Warning systemWideWarning = new Warning().SystemWideWarning();
 
     Warning warning = new Warning();
@@ -41,17 +41,15 @@ public class MainActivity extends AppCompatActivity {
     final static String NuclearTechnician = "NuclearTechnician1";
     final static String OverstayedStatus = "OverstayedStatus";
 
-
     String currentTime = LocalTime.now().toString();
     String currentDate = LocalDate.now().toString();
 
-    DatabaseReference myRef =  FirebaseDatabase.getInstance().getReference();
-    DatabaseReference statusReference = myRef.child(currentDate).child(NuclearTechnician).child("Status");
+    DatabaseManager dbManager = new DatabaseManager(NuclearTechnician, currentDate);
 
     Boolean isClockedIn = false;
     CountDownTimer mCountDownTimer;
 
-    private NotificationManagerCompat notificationManager;
+    private Context mContext = this;
 
     TimeKeeper timeKeeper = new TimeKeeper(3000);
 
@@ -61,18 +59,15 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         valueEventListener();
-
         final Button clockInButton = findViewById(R.id.clock_in_button);
 
         clockInButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (isClockedIn) {
-                    clockOut();
-                }
-                else {
-                    clockIn();
-                }
+
+                if (isClockedIn) { clockOut(); }
+
+                else { clockIn(); }
             }
         });
     }
@@ -84,21 +79,16 @@ public class MainActivity extends AppCompatActivity {
                 timeKeeper.setTimeLeftInMillis(millisUntilFinished);
                 updateTimer(timeKeeper.toString());
 
-                if(timeKeeper.timeLeftInSeconds() == 600){
-                    sendWarning(warning.createMinuteWarning("10"));
-                }
-                if(timeKeeper.timeLeftInSeconds() == 300)
-                {
-                    sendWarning(warning.createMinuteWarning("5"));
-                }
-                if(timeKeeper.timeLeftInSeconds() == 60){
-                    sendWarning(warning.createMinuteWarning("1"));
-                }
+                if(timeKeeper.timeLeftInSeconds() == 600){ warning.createMinuteWarning("10").sendthisWarning(mContext); }
+
+                if(timeKeeper.timeLeftInSeconds() == 300){ warning.createMinuteWarning("5").sendthisWarning(mContext);  }
+
+                if(timeKeeper.timeLeftInSeconds() == 60) { warning.createMinuteWarning("1").sendthisWarning(mContext);  }
             }
             @Override
             public void onFinish(){
                 if(isClockedIn){
-                    statusReference.setValue(OverstayedStatus);
+                    dbManager.setStatus(OverstayedStatus);
                 }
             }
         }.start();
@@ -110,58 +100,45 @@ public class MainActivity extends AppCompatActivity {
     }
 
     long timeUntilRadiationLimit(){
-        Radiation radiationLevels = new Radiation(30, REACTOR_ROOM, 1);
-
-        double exposurePerSecond = radiationLevels.getUnitExposurePerSecond();
-
-        double exposurePerMiliSecond = exposurePerSecond/1000;
-
-        double timeLeft = radiationLevels.getRadioationLimit()/exposurePerMiliSecond;
-        return (long) timeLeft;
-    }
+        Radiation radiationLevels = new Radiation(30, REACTOR_ROOM, 1); // This should be in TimeKeeper
+        double exposurePerMiliSecond = radiationLevels.getUnitExposurePerMilliSecond();                       // taking the radiation-obj as
+        double timeLeft = radiationLevels.getRadioationLimit()/exposurePerMiliSecond;                         // param and use
+        return (long) timeLeft;                                                                               // timeKeeper.timeLEFTInMillis
+    }                                                                                                         // to recalculate.
 
     void updateTimer(String timeLeft){
         TextView countdownText = findViewById(R.id.countdownTimer);
         countdownText.setText(timeLeft);
     }
-
-    void sendWarning(Warning warning){
-        notificationManager = NotificationManagerCompat.from(this);
-
-        Notification notification = new NotificationCompat.Builder(this, "Channel1")
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
-                .setContentTitle(warning.getTitle())
-                .setContentText(warning.getBody())
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setCategory(NotificationCompat.CATEGORY_ALARM)
-                .build();
-        notificationManager.notify(1, notification);
-    }
     void clockIn(){
         isClockedIn = true;
-        TextView textView = findViewById(R.id.status);
-        textView.setText("Clocked in");
-        myRef.child(currentDate).child(NuclearTechnician).child("Clocked in").push().setValue(currentTime);
-       statusReference.setValue("active");
+        updateTimerText("Clocked In");
+        dbManager.addClockInTime(currentTime);
         startTimer();
     }
     void clockOut(){
         isClockedIn = false;
-        TextView textView = findViewById(R.id.status);
-        textView.setText("Clocked Out");
-        myRef.child(currentDate).child(NuclearTechnician).child("Clocked out").push().setValue(currentTime);
-        statusReference.setValue("inactive");
+        updateTimerText("Clocked Out");
+        dbManager.addClockOutTime(currentTime);
         stopTimer();
+    }
+    void updateTimerText(String text){
+        TextView textView = findViewById(R.id.status);
+        textView.setText(text);
     }
 
     void valueEventListener(){
         ValueEventListener statusListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                String technichianStatus = dataSnapshot.getValue().toString();
-
-                if(technichianStatus.equals(OverstayedStatus)) {
-                    sendWarning(systemWideWarning);
+                try {
+                    String technichianStatus = dataSnapshot.getValue().toString();
+                    if (technichianStatus.equals(OverstayedStatus)) {
+                        systemWideWarning.sendthisWarning(mContext);
+                    }
+                }
+                catch (NullPointerException exception){
+                    System.out.println("Nullpointer exception in valueEventListener, probably couz there are no clock ins yet on this date");
                 }
             }
             @Override
@@ -169,6 +146,6 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(MainActivity.this, "Database error: "+databaseError, Toast.LENGTH_SHORT).show();
             }
         };
-        statusReference.addValueEventListener(statusListener);
+        dbManager.getStatusRef().addValueEventListener(statusListener);
     }
 }

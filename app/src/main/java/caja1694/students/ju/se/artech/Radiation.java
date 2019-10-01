@@ -15,6 +15,9 @@ public class Radiation {
     public double getUnitExposurePerSecond(){
         return (this.reactorOutputPerSecond * this.roomCoefficient) / this.protectionCoefficient;
     }
+    public double getUnitExposurePerMilliSecond(){
+        return (this.reactorOutputPerSecond * this.roomCoefficient) / (this.protectionCoefficient*1000);
+    }
     public double getRadioationLimit(){
         return this.radioationLimit;
     }
