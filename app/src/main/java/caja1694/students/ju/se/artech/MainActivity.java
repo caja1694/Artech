@@ -1,13 +1,13 @@
 package caja1694.students.ju.se.artech;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
 
 import android.annotation.TargetApi;
-import android.app.Notification;
+import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
@@ -18,8 +18,6 @@ import android.widget.Toast;
 
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.time.LocalDate;
@@ -49,8 +47,12 @@ public class MainActivity extends AppCompatActivity {
     Boolean isClockedIn = false;
     CountDownTimer mCountDownTimer;
 
-    private Context mContext = this;
+    Button connectButton;
+    Button clockInButton;
 
+    BluetoothAdapter btAdapter;
+
+    private Context mContext = this;
     TimeKeeper timeKeeper = new TimeKeeper(3000);
 
     @Override
@@ -59,14 +61,18 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         valueEventListener();
-        final Button clockInButton = findViewById(R.id.clock_in_button);
+        verifyBluetooth();
+        connectButton = findViewById(R.id.connect_button);
+        clockFunction();
 
+    }
+
+    private void clockFunction() {
+        clockInButton = findViewById(R.id.clock_in_button);
         clockInButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
                 if (isClockedIn) { clockOut(); }
-
                 else { clockIn(); }
             }
         });
@@ -112,17 +118,17 @@ public class MainActivity extends AppCompatActivity {
     }
     void clockIn(){
         isClockedIn = true;
-        updateTimerText("Clocked In");
+        updateStatusText("Clocked In");
         dbManager.addClockInTime(currentTime);
         startTimer();
     }
     void clockOut(){
         isClockedIn = false;
-        updateTimerText("Clocked Out");
+        updateStatusText("Clocked Out");
         dbManager.addClockOutTime(currentTime);
         stopTimer();
     }
-    void updateTimerText(String text){
+    void updateStatusText(String text){
         TextView textView = findViewById(R.id.status);
         textView.setText(text);
     }
@@ -147,5 +153,28 @@ public class MainActivity extends AppCompatActivity {
             }
         };
         dbManager.getStatusRef().addValueEventListener(statusListener);
+    }
+
+    private void verifyBluetooth(){
+        int REQUEST_ENABLE_BT = 1;
+        btAdapter = BluetoothAdapter.getDefaultAdapter();
+        if(btAdapter == null){
+            Toast.makeText(MainActivity.this, "Device does not support bluetooth", Toast.LENGTH_SHORT).show();
+        }
+        else if(!btAdapter.isEnabled()){
+            Intent enableBluetoothIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(enableBluetoothIntent, REQUEST_ENABLE_BT);
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(resultCode == RESULT_OK){
+            Toast.makeText(getApplicationContext(), "Bluetooth Enabled", Toast.LENGTH_SHORT).show();
+        }
+        if(resultCode == RESULT_CANCELED){
+            Toast.makeText(getApplicationContext(), "Bluetooth cancelled, enable to connect to safety console", Toast.LENGTH_LONG).show();
+        }
     }
 }
