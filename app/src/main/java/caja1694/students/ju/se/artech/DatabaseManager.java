@@ -16,12 +16,14 @@ public class DatabaseManager {
     DatabaseReference statusRef;
     DatabaseReference clockInReference;
     DatabaseReference clockOutReference;
+    DatabaseReference logReference;
 
     public DatabaseManager(String userName, String currentDate){
         this.baseReference = FirebaseDatabase.getInstance().getReference();
         this.statusRef = baseReference.child(currentDate).child(userName).child("Status");
         this.clockInReference = baseReference.child(currentDate).child(userName).child("Clocked in");
         this.clockOutReference = baseReference.child(currentDate).child(userName).child("Clocked out");
+        this.logReference = baseReference.child(currentDate).child(userName).child("log");
     }
     public void addClockInTime(String time){
         clockInReference.push().setValue(time);
@@ -34,28 +36,11 @@ public class DatabaseManager {
     public void setStatus(String status){
         statusRef.setValue(status);
     }
-    /*
-    public boolean eventListener(final String valueToListenFor){
-        final boolean[] valueWasFound = {false};
-        ValueEventListener eventListener = new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                System.out.println("In on datachange");
-                if(valueToListenFor.equals(dataSnapshot.getValue().toString())) {
-                    valueWasFound[0] = true;                                        // This should be changed to better code...
-                    System.out.println(valueWasFound[0]);                           // We get here bur dont return, whole thing should
-                }                                                                   // work very differently. Should not be a return function.
-            }
 
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
+    public void setLog(String child, String value) {
+        logReference.child(value).push().setValue(child);
 
-            }
-        };
-        statusRef.addValueEventListener(eventListener);
-        System.out.println("returning" + valueWasFound[0]);
-        return valueWasFound[0];
-    }*/
+    }
 
     public DatabaseReference getStatusRef() {
         return statusRef;

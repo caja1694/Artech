@@ -6,10 +6,13 @@ public class TimeKeeper extends AppCompatActivity {
 
     private long startTimeInMillis;
     private long timeLeftInMillis;
+    private Radiation radiation;
 
+    public TimeKeeper(){}
 
-    public TimeKeeper(long startTimeInMillis) {
-        this.startTimeInMillis = startTimeInMillis;
+    public TimeKeeper(Radiation radiation) {
+        this.radiation = radiation;
+        this.startTimeInMillis = calculateNewStartTimeInMillis();
         this.timeLeftInMillis = startTimeInMillis;
     }
 
@@ -39,6 +42,11 @@ public class TimeKeeper extends AppCompatActivity {
 
     public int timeLeftInSeconds() {
         return (int) this.timeLeftInMillis / 1000;
+    }
+    public long calculateNewStartTimeInMillis(){
+        double exposurePerMilliSecond = radiation.getUnitExposurePerMilliSecond();
+        double startTime = radiation.getRadioationLimit()/exposurePerMilliSecond;
+        return (long) startTime;
     }
 
     public String toString(){

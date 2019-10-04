@@ -5,7 +5,7 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class TimeKeeperTest {
-
+    TimeKeeper timeKeeper = new TimeKeeper();
     @Test
     public void timeLeftInHours() {
     }
@@ -17,7 +17,7 @@ public class TimeKeeperTest {
     @Test
     public void timeLeftInSeconds_Should_Return_10() {
         //Arrange
-        TimeKeeper timeKeeper = new TimeKeeper(10000);
+
         //Act
         int timeLeftInSeconds = timeKeeper.timeLeftInSeconds();
         // Assert

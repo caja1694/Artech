@@ -46,10 +46,11 @@ public class MainActivity extends AppCompatActivity {
 	final static double NO_SUIT = 1;
 	final static double HAZMAT_SUIT = 5;
 
+	final static Warning systemWideWarning = new Warning().SystemWideWarning();
+
 	Radiation radiation;
 
-	final static Warning systemWideWarning = new Warning().SystemWideWarning();
-	Warning warning = new Warning();
+	Warning warning;
 
 	final static String NuclearTechnician = "NuclearTechnician1";
 	final static String OverstayedStatus = "OverstayedStatus";
@@ -77,6 +78,7 @@ public class MainActivity extends AppCompatActivity {
 	TimeKeeper timeKeeper;
 	String currentTime = LocalTime.now().toString();
 	String currentDate = LocalDate.now().toString();
+	long startTime;
 
 
 	private final BroadcastReceiver brodCastReciever1 = new BroadcastReceiver() {
@@ -138,6 +140,7 @@ public class MainActivity extends AppCompatActivity {
 		super.onDestroy();
 		unregisterReceiver(brodCastReciever1);
 		unregisterReceiver(brodCastReceiver2);
+		unregisterReceiver(dataReceiver);
 	}
 
 	@Override
@@ -149,7 +152,9 @@ public class MainActivity extends AppCompatActivity {
 		btAdapter = BluetoothAdapter.getDefaultAdapter();
 		incomingData = new StringBuilder();
 		radiation = new Radiation(30, BREAK_ROOM, NO_SUIT);
-		timeKeeper = new TimeKeeper(calculateStartTimeInMillis());
+		timeKeeper = new TimeKeeper(radiation);
+		startTime = timeKeeper.calculateNewStartTimeInMillis();
+		warning = new Warning();
 
 		valueEventListener();
 		clockFunction();
@@ -163,8 +168,6 @@ public class MainActivity extends AppCompatActivity {
 	public void startBTConnection(BluetoothDevice device, UUID uuid){
 		Log.d(TAG, "startConnection: Innitialize bt connection");
 		btConnector.startClient(device, uuid);
-
-
 	}
 	public void startConnection(){
 		//uuid = btDevice.getUuids()[0].getUuid();
@@ -243,8 +246,9 @@ public class MainActivity extends AppCompatActivity {
 
 	void stopTimer(){
 		mCountDownTimer.cancel();
-		calculateStartTimeInMillis();
+		timeKeeper.calculateNewStartTimeInMillis();
 	}
+	// Should be done by timekeeper
 	public long calculateStartTimeInMillis(){
 		double exposurePerMiliSecond = radiation.getUnitExposurePerMilliSecond();
 		double startTime = radiation.getRadioationLimit()/exposurePerMiliSecond;
@@ -252,10 +256,11 @@ public class MainActivity extends AppCompatActivity {
 	}
 
 	public void calculateTimeLeftInMillis(){
-		double exposurePerMiliSecond = radiation.getUnitExposurePerMilliSecond();
-		double startTime = radiation.getRadioationLimit()/exposurePerMiliSecond;
-		long timePast = (long) startTime - timeKeeper.getTimeLeftInMillis();
-		long timeLeft = (long) startTime - timePast;
+		long timePast =  startTime - timeKeeper.getTimeLeftInMillis();
+		long timeLeft =  timeKeeper.calculateNewStartTimeInMillis() - timePast;
+
+		Log.d(TAG, "startTime: " + startTime + "timePast: " + timePast + "timeLeft: " + timeLeft);
+
 		timeKeeper.setTimeLeftInMillis(timeLeft);
 	}
 
@@ -361,16 +366,19 @@ public class MainActivity extends AppCompatActivity {
 				radiation.setRoomCoefficient(BREAK_ROOM);
 				Log.d(TAG, "handleIncomingData: BREAK_ROOM");
 				calculateTimeLeftInMillis();
+				dbManager.setLog(currentTime, "Entered break room");
 				break;
 			case "b":
 				radiation.setRoomCoefficient(CONTROL_ROOM);
 				Log.d(TAG, "handleIncomingData: CONTROL_ROOM");
 				calculateTimeLeftInMillis();
+				dbManager.setLog(currentTime, "Entered control room");
 				break;
 			case "c":
 				radiation.setRoomCoefficient(REACTOR_ROOM);
 				Log.d(TAG, "handleIncomingData: REACTOR_ROOM");
 				calculateTimeLeftInMillis();
+				dbManager.setLog(currentTime, "Entered reactor room");
 				break;
 			case "x":
 				radiation.setRoomCoefficient(BREAK_ROOM);
@@ -381,11 +389,19 @@ public class MainActivity extends AppCompatActivity {
 				radiation.setProtectionCoefficient(HAZMAT_SUIT);
 				Log.d(TAG, "handleIncomingData: HAZMAT_SUIT");
 				calculateTimeLeftInMillis();
+				dbManager.setLog(currentTime, "Suit On");
 				break;
 			case "n":
 				radiation.setProtectionCoefficient(NO_SUIT);
 				Log.d(TAG, "handleIncomingData: NO_SUIT");
 				calculateTimeLeftInMillis();
+				dbManager.setLog(currentTime, " Suit Off");
+				break;
+			case "i":
+				clockIn();
+				break;
+			case "o":
+				clockOut();
 				break;
 
 

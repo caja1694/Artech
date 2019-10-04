@@ -4,7 +4,7 @@ public class Radiation {
     private double reactorOutputPerSecond;
     private double roomCoefficient;
     private double protectionCoefficient;
-    private double radioationLimit = 500000;
+    final static private double radioationLimit = 500000;
 
     public Radiation(double reactorOutputPerSecond, double roomCoefficient, double protectionCoefficient){
         this.reactorOutputPerSecond = reactorOutputPerSecond;
