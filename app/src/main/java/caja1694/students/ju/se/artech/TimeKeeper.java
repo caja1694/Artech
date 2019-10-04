@@ -17,6 +17,10 @@ public class TimeKeeper extends AppCompatActivity {
         return startTimeInMillis;
     }
 
+    public void setStartTimeInMillis(long startTimeInMillis) {
+        this.startTimeInMillis = startTimeInMillis;
+    }
+
     public long getTimeLeftInMillis() {
         return timeLeftInMillis;
     }
@@ -36,6 +40,7 @@ public class TimeKeeper extends AppCompatActivity {
     public int timeLeftInSeconds() {
         return (int) this.timeLeftInMillis / 1000;
     }
+
     public String toString(){
         int hours = timeLeftInHours();
         int minutes = timeLeftInMinutes()%60;

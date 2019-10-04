@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
+import android.content.Intent;
 import android.nfc.Tag;
 import android.util.Log;
 
@@ -15,6 +16,8 @@ import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.UUID;
 
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
 public class BluetoothConnector {
     private final static String TAG = "BluetoothConnector";
 
@@ -23,7 +26,6 @@ public class BluetoothConnector {
     private BluetoothAdapter btAdapter;
     private Context mContext;
 
-    private AcceptThread acceptThread;
     private ConnectThread connectThread;
     private ThreadConnected threadConnected;
 
@@ -35,46 +37,6 @@ public class BluetoothConnector {
         mContext = context;
         btAdapter = BluetoothAdapter.getDefaultAdapter();
         start();
-    }
-
-    private class AcceptThread extends Thread {
-        private BluetoothServerSocket serverSocket;
-
-        public AcceptThread(){
-            Log.d(TAG, "AcceptThread: Constructor");
-            BluetoothServerSocket tempSocket = null;
-            try {
-                Log.d(TAG, "AcceptThread: Settering upp serversocket...");
-                tempSocket = btAdapter.listenUsingInsecureRfcommWithServiceRecord(appName, uuid);
-            } catch (IOException e) {
-                Log.d(TAG, "AcceptThread: IOException" +e);
-            }
-            serverSocket = tempSocket;
-        }
-
-        public void run() {
-            BluetoothSocket btSocket = null;
-            Log.d(TAG, "run: Accept thread running...");
-            try{
-                Log.d(TAG, "run: RFCOM server socket start...");
-                btSocket = serverSocket.accept();
-                Log.d(TAG, "run: RFCOM server socket accepted connection");
-                
-            } catch (IOException e){
-                System.out.println("Error in cancel" + e.getMessage());
-            }
-            if (btSocket != null){
-                connected(btSocket, btDevice);
-            }
-            Log.d(TAG, "run: End Accept thread");
-        }
-        public void cancel(){
-            try{
-                serverSocket.close();
-            } catch (IOException e){
-                Log.d(TAG, "cancel: cancel failed" + e.getMessage());
-            }
-        }
     }
 
     // CONNECT THREAD CLASS
@@ -111,7 +73,7 @@ public class BluetoothConnector {
                 } catch (IOException e1) {
                     Log.d(TAG, "run: Connect thread unable to close connection in socket" + e.getMessage());
                 }
-                Log.d(TAG, "run: Connect thread could not connect to uuid");
+                Log.d(TAG, "run: Connect thread could not connect to uuid" + deviceUUID);
             }
             connected(btSocket, btDevice);
         }
@@ -120,7 +82,7 @@ public class BluetoothConnector {
                 Log.d(TAG, "cancel: Connect thread closing Client socket");
                 btSocket.close();
             } catch (IOException e) {
-                Log.d(TAG, "cancel: Connect thread Closing falied" + e.getMessage());
+                Log.d(TAG, "cancel: Connect thread Closing failed" + e.getMessage());
             }
         }
     }
@@ -129,10 +91,6 @@ public class BluetoothConnector {
         if(connectThread != null){
             connectThread.cancel();
             connectThread = null;
-        }
-        if (acceptThread == null){
-            acceptThread = new AcceptThread();
-            acceptThread.start();
         }
     }
     public void startClient(BluetoothDevice btDevice, UUID uuid){
@@ -154,7 +112,11 @@ public class BluetoothConnector {
             InputStream tempIn = null;
             OutputStream tempOut = null;
 
-            progressDialog.dismiss();
+            try {
+                progressDialog.dismiss();
+            }catch (NullPointerException e){
+                Log.d(TAG, "ThreadConnected: Trying to dissmiss dialogbox, nothing to worry about.");
+            }
 
             try{
                 Log.d(TAG, "ThreadConnected: Get input/output stream");
@@ -168,6 +130,7 @@ public class BluetoothConnector {
         }
 
         public void run() {
+            Log.d(TAG, "ThreadConnected run: reading");
             byte[] buffer = new byte[1024];
             int bytes;
 
@@ -175,8 +138,15 @@ public class BluetoothConnector {
             while (true){
                 try {
                     bytes = inputStream.read(buffer);
-                    String incomingMessage = new String(buffer, 0, bytes);
-                    Log.d(TAG, "run: Incoming message: " + incomingMessage);
+                    String incomingMessage = new String(buffer, 0, bytes, "ASCII");
+                    StringBuilder stringBuilder = new StringBuilder();
+                    stringBuilder.append(incomingMessage);
+
+                    Log.d(TAG, "run: Incoming message: " + incomingMessage + " bytes: " + bytes);
+                    Intent intent = new Intent("incomingData");
+                    intent.putExtra("incomingMessage", stringBuilder.toString());
+                    LocalBroadcastManager.getInstance(mContext).sendBroadcast(intent);
+                    Log.d(TAG, "run: created intent: " + intent.getExtras());
                 } catch (IOException e) {
                     Log.d(TAG, "run: error reading InputStream" + e.getMessage());
                     break;
@@ -187,12 +157,12 @@ public class BluetoothConnector {
         // Call from main activity
         public void write(byte[] bytes){
             String msg = new String(bytes, Charset.defaultCharset());
-            Log.d(TAG, "write: Sending message" + msg);
+            Log.d(TAG, "write: Sending message: " + msg);
             try{
                 outputStream.write(bytes);
                 Log.d(TAG, "write: Message sent: " + msg);
             } catch (IOException e){
-                Log.d(TAG, "write: Error writing message" + e.getMessage());
+                Log.d(TAG, "write: Error writing message: " + e.getMessage());
             }
         }
 

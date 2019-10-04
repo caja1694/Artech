@@ -2,6 +2,7 @@ package caja1694.students.ju.se.artech;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import android.annotation.TargetApi;
 import android.bluetooth.BluetoothAdapter;
@@ -23,8 +24,6 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.ValueEventListener;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -37,38 +36,48 @@ public class MainActivity extends AppCompatActivity {
 
 	final static String JacobsMacbook = "98:01:A7:BE:EF:4E";
 	final static String HC06 = "98:D3:81:FD:46:DA";
+	final static String FabiansIphone = "74:B5:87:A9:48:68";
+	final static String DennisAndroid = "7C:A1:77:72:BE:42";
+	final static String MariasIphone = "A4:D9:31:4A:6D:F0";
 
 	final static double BREAK_ROOM = 0.1;
 	final static double CONTROL_ROOM = 0.5;
 	final static double REACTOR_ROOM = 1.6;
+	final static double NO_SUIT = 1;
+	final static double HAZMAT_SUIT = 5;
+
+	Radiation radiation;
 
 	final static Warning systemWideWarning = new Warning().SystemWideWarning();
-
 	Warning warning = new Warning();
 
 	final static String NuclearTechnician = "NuclearTechnician1";
 	final static String OverstayedStatus = "OverstayedStatus";
 
-	String currentTime = LocalTime.now().toString();
-	String currentDate = LocalDate.now().toString();
+	private UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
-	private UUID uuid = UUID.fromString("8ce255c0-200a-11e0-ac64-0800200c9a66");
-
-	DatabaseManager dbManager = new DatabaseManager(NuclearTechnician, currentDate);
+	DatabaseManager dbManager;
 
 	Boolean isClockedIn = false;
-	CountDownTimer mCountDownTimer;
 
+	// Buttons
 	Button connectButton;
 	Button clockInButton;
 	Button startButton;
+	Button sendButton;
 
+	//Bluetooth
 	BluetoothAdapter btAdapter;
 	BluetoothDevice btDevice;
 	BluetoothConnector btConnector;
+	StringBuilder incomingData;
 
-	private Context mContext = this;
-	TimeKeeper timeKeeper = new TimeKeeper(20000);
+	// Time
+	CountDownTimer mCountDownTimer;
+	TimeKeeper timeKeeper;
+	String currentTime = LocalTime.now().toString();
+	String currentDate = LocalDate.now().toString();
+
 
 	private final BroadcastReceiver brodCastReciever1 = new BroadcastReceiver() {
 		public void onReceive(Context context, Intent intent) {
@@ -85,7 +94,6 @@ public class MainActivity extends AppCompatActivity {
 
 					case BluetoothAdapter.STATE_ON:
 						Log.d(TAG, "brodCastReciever1: BT STATE ON");
-						pair();
 						break;
 					case BluetoothAdapter.STATE_TURNING_ON:
 						Log.d(TAG, "brodCastReceiver1: BT STATE TURNING ON");
@@ -102,7 +110,6 @@ public class MainActivity extends AppCompatActivity {
 				BluetoothDevice tmpBtDevice = intent.getParcelableExtra (BluetoothDevice.EXTRA_DEVICE);
 				if(tmpBtDevice.getBondState() == BluetoothDevice.BOND_BONDED){
 					Log.d(TAG, "brodCastReceiver3: BONDED to " + tmpBtDevice.getName());
-					//btDevice = tmpBtDevice;
 				}
 				if(tmpBtDevice.getBondState() == BluetoothDevice.BOND_BONDING){
 					Log.d(TAG, "brodCastReceiver3: BONDING");
@@ -111,6 +118,17 @@ public class MainActivity extends AppCompatActivity {
 					Log.d(TAG, "brodCastReceiver3: BOND_NONE");
 				}
 			}
+		}
+	};
+
+	BroadcastReceiver dataReceiver = new BroadcastReceiver() {
+		@Override
+		public void onReceive(Context context, Intent intent) {
+			Log.d(TAG, "onReceive dataReceiver: creating message");
+			String text = intent.getStringExtra("incomingMessage");
+			Log.d(TAG, "onReceive dataReceiver: msg:" + text);
+			incomingData.append(text);
+			handleIncomingData(text);
 		}
 	};
 
@@ -127,27 +145,48 @@ public class MainActivity extends AppCompatActivity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
-		valueEventListener();
+		dbManager  = new DatabaseManager(NuclearTechnician, currentDate);
 		btAdapter = BluetoothAdapter.getDefaultAdapter();
+		incomingData = new StringBuilder();
+		radiation = new Radiation(30, BREAK_ROOM, NO_SUIT);
+		timeKeeper = new TimeKeeper(calculateStartTimeInMillis());
+
+		valueEventListener();
 		clockFunction();
 		connect();
 		starter();
+		sendMessage();
+		LocalBroadcastManager.getInstance(this).registerReceiver(dataReceiver, new IntentFilter("incomingData"));
 		IntentFilter intentFilter = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
 		registerReceiver(brodCastReceiver2, intentFilter);
 	}
 	public void startBTConnection(BluetoothDevice device, UUID uuid){
 		Log.d(TAG, "startConnection: Innitialize bt connection");
 		btConnector.startClient(device, uuid);
+
+
 	}
 	public void startConnection(){
+		//uuid = btDevice.getUuids()[0].getUuid();
 		startBTConnection(btDevice, uuid);
 	}
 	private void starter(){
 		startButton = findViewById(R.id.start_button);
+		startButton.setText("start");
 		startButton.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				startConnection();
+				pair();
+			}
+		});
+	}
+	private void sendMessage(){
+		sendButton = findViewById(R.id.send_message_button);
+		sendButton.setText("Send");
+		sendButton.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				send(timeKeeper.toString());
 			}
 		});
 	}
@@ -176,31 +215,22 @@ public class MainActivity extends AppCompatActivity {
 			@Override
 			public void onTick(long millisUntilFinished) {
 				timeKeeper.setTimeLeftInMillis(millisUntilFinished);
+				calculateTimeLeftInMillis();
+
 				updateTimer(timeKeeper.toString());
-				BluetoothDevice tmpBtDevice = btDevice;
+				Log.d(TAG, "onTick: timekeeper.toString: " + timeKeeper.toString());
 
-				if(timeKeeper.timeLeftInSeconds() == 600){ warning.createMinuteWarning("10").sendthisWarning(mContext); }
+				if(timeKeeper.timeLeftInSeconds() == 600){ warning.createMinuteWarning("10").sendthisWarning(MainActivity.this); }
 
-				if(timeKeeper.timeLeftInSeconds() == 300){ warning.createMinuteWarning("5").sendthisWarning(mContext);  }
+				if(timeKeeper.timeLeftInSeconds() == 300){ warning.createMinuteWarning("5").sendthisWarning(MainActivity.this);  }
 
-				if(timeKeeper.timeLeftInSeconds() == 60) { warning.createMinuteWarning("1").sendthisWarning(mContext);  }
-				if(tmpBtDevice != null) {
-					int state = tmpBtDevice.getBondState();
-					switch (state) {
-                        case BluetoothDevice.BOND_BONDING:
-                            Log.d(TAG, "startDownTimer: BONDING");
-                            break;
+				if(timeKeeper.timeLeftInSeconds() == 60) { warning.createMinuteWarning("1").sendthisWarning(MainActivity.this);  }
 
-						case BluetoothDevice.BOND_BONDED:  // CHECK BOND STATUS
-							Log.d(TAG, "startDownTimer: BONDED to " + tmpBtDevice.getName());
-							break;
-							//btDevice = tmpBtDevice;
-
-						case BluetoothDevice.BOND_NONE:
-							Log.d(TAG, "brodCastReceiver3: BOND_NONE");
-							break;
-					}
-				}
+				// Update LCD time.
+				/*
+				if(btConnector != null){
+					send(timeKeeper.toString());
+				}*/
 			}
 			@Override
 			public void onFinish(){
@@ -213,15 +243,22 @@ public class MainActivity extends AppCompatActivity {
 
 	void stopTimer(){
 		mCountDownTimer.cancel();
-		timeKeeper.setTimeLeftInMillis(timeUntilRadiationLimit());
+		calculateStartTimeInMillis();
+	}
+	public long calculateStartTimeInMillis(){
+		double exposurePerMiliSecond = radiation.getUnitExposurePerMilliSecond();
+		double startTime = radiation.getRadioationLimit()/exposurePerMiliSecond;
+		return (long) startTime;
 	}
 
-	long timeUntilRadiationLimit(){
-		Radiation radiationLevels = new Radiation(30, REACTOR_ROOM, 1); // This should be in TimeKeeper
-		double exposurePerMiliSecond = radiationLevels.getUnitExposurePerMilliSecond();                       // taking the radiation-obj as
-		double timeLeft = radiationLevels.getRadioationLimit()/exposurePerMiliSecond;                         // param and use
-		return (long) timeLeft;                                                                               // timeKeeper.timeLEFTInMillis
-	}                                                                                                         // to recalculate.
+	public void calculateTimeLeftInMillis(){
+		double exposurePerMiliSecond = radiation.getUnitExposurePerMilliSecond();
+		double startTime = radiation.getRadioationLimit()/exposurePerMiliSecond;
+		long timePast = (long) startTime - timeKeeper.getTimeLeftInMillis();
+		long timeLeft = (long) startTime - timePast;
+		timeKeeper.setTimeLeftInMillis(timeLeft);
+	}
+
 
 	void updateTimer(String timeLeft){
 		TextView countdownText = findViewById(R.id.countdownTimer);
@@ -251,7 +288,7 @@ public class MainActivity extends AppCompatActivity {
 				try {
 					String technichianStatus = dataSnapshot.getValue().toString();
 					if (technichianStatus.equals(OverstayedStatus)) {
-						systemWideWarning.sendthisWarning(mContext);
+						systemWideWarning.sendthisWarning(MainActivity.this);
 					}
 				}
 				catch (NullPointerException exception){
@@ -291,27 +328,67 @@ public class MainActivity extends AppCompatActivity {
 	public void pair(){
 		btAdapter.cancelDiscovery();
 		 Log.d(TAG, "pair: Pairing");
-		btDevice = btAdapter.getRemoteDevice(JacobsMacbook);
+		btDevice = btAdapter.getRemoteDevice(HC06);
 
 		Log.d(TAG, "pair: btDevice: " + btDevice);
 		if (btDevice != null) {
-			Log.d(TAG, "pair: in if" + btDevice.getName());
-			btDevice.createBond();
-			Log.d(TAG, "pair: device UUID" + btDevice.getUuids()[0].toString());
-			btConnector = new BluetoothConnector(MainActivity.this);
+			try {
+				Log.d(TAG, "pair: in if: " + btDevice.getName());
+				btDevice.createBond();
+				Log.d(TAG, "pair: device UUID" + btDevice.getUuids()[0].toString());
+				btConnector = new BluetoothConnector(MainActivity.this);
+				Log.d(TAG, "pair: BONDED = " + (btDevice.getBondState() == BluetoothDevice.BOND_BONDED) + btDevice.getName());
+			}
+		catch(NullPointerException e){
+				Log.d(TAG, "pair: IOException" + e);
+			}
 		}
-		try{
-			Log.d(TAG, "pair: BONDED = " + (btDevice.getBondState() == BluetoothDevice.BOND_BONDED) + btDevice.getName());
-		}
-		catch (NullPointerException e){
-			Log.d(TAG, "pair: IOException" + e);
-		}
+		startConnection();
 
 	}
 
-	public void send(){
+	public void send(String message){
 		Log.d(TAG, "MainActivity send:");
-		byte [] bytes = "1".getBytes(Charset.defaultCharset());
+		byte [] bytes = message.getBytes(Charset.defaultCharset());
 		btConnector.write(bytes);
+	}
+	public void recieveMessage(){
+		Log.d(TAG, "recieveMessage: Incomingdata: " + incomingData);
+	}
+	public void handleIncomingData(String data){
+		switch (data){
+			case "a":
+				radiation.setRoomCoefficient(BREAK_ROOM);
+				Log.d(TAG, "handleIncomingData: BREAK_ROOM");
+				calculateTimeLeftInMillis();
+				break;
+			case "b":
+				radiation.setRoomCoefficient(CONTROL_ROOM);
+				Log.d(TAG, "handleIncomingData: CONTROL_ROOM");
+				calculateTimeLeftInMillis();
+				break;
+			case "c":
+				radiation.setRoomCoefficient(REACTOR_ROOM);
+				Log.d(TAG, "handleIncomingData: REACTOR_ROOM");
+				calculateTimeLeftInMillis();
+				break;
+			case "x":
+				radiation.setRoomCoefficient(BREAK_ROOM);
+				Log.d(TAG, "handleIncomingData: BREAK_ROOM");
+				calculateTimeLeftInMillis();
+				break;
+			case "y":
+				radiation.setProtectionCoefficient(HAZMAT_SUIT);
+				Log.d(TAG, "handleIncomingData: HAZMAT_SUIT");
+				calculateTimeLeftInMillis();
+				break;
+			case "n":
+				radiation.setProtectionCoefficient(NO_SUIT);
+				Log.d(TAG, "handleIncomingData: NO_SUIT");
+				calculateTimeLeftInMillis();
+				break;
+
+
+		}
 	}
 }
