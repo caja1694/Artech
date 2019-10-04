@@ -1,71 +1,103 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    android:paddingLeft="16dp"
+    android:paddingTop="16dp"
+    android:paddingRight="16dp"
+    android:paddingBottom="16dp">
 
-    <TextView
-        android:id="@+id/status"
-        android:layout_width="wrap_content"
+
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="185dp"
-        android:layout_marginTop="98dp"
-        android:layout_marginEnd="168dp"
-        android:layout_marginBottom="213dp"
-        android:gravity="center"
-        android:text="Status"
-        android:textSize="20dp"
-        app:layout_constraintBottom_toTopOf="@+id/countdownTimer"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:orientation="vertical"
+        android:layout_weight="0.25">
 
-    <TextView
-        android:id="@+id/countdownTimer"
-        android:layout_width="wrap_content"
+        <TextView
+            android:id="@+id/welcome"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:text="@string/welcome"
+            android:textAlignment="center"
+            android:textColor="#00BCD4"
+            android:textSize="30sp" />
+
+        <TextView
+            android:id="@+id/status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:text=""
+            android:textAlignment="center"
+            android:textColor="#009688"
+            android:textSize="30sp" />
+
+
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="153dp"
-        android:layout_marginTop="338dp"
-        android:layout_marginEnd="154dp"
-        android:layout_marginBottom="172dp"
-        android:gravity="center"
-        android:text="Timer"
-        android:textSize="40dp"
-        app:layout_constraintBottom_toTopOf="@+id/clock_in_button"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:orientation="horizontal"
+        android:layout_weight="0.25">
 
-    <Button
-        android:id="@+id/clock_in_button"
-        android:layout_width="wrap_content"
+        <TextView
+            android:id="@+id/countdownTimer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:text="@string/Timer"
+            android:textAlignment="center"
+            android:textColor="#009688"
+            android:textSize="30sp" />
+
+
+
+
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="162dp"
-        android:layout_marginTop="564dp"
-        android:layout_marginEnd="161dp"
-        android:layout_marginBottom="119dp"
-        android:text="@string/clock"
-        android:textSize="20dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:orientation="vertical"
+        android:layout_weight="0.25">
 
-    <Button
-        android:id="@+id/connect_button"
-        android:layout_width="wrap_content"
+        <Button
+            android:id="@+id/clock_in_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#94DFD8"
+            android:text="@string/clock"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <Button
+            android:id="@+id/connect_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#94DFD8"
+            android:text="@string/connect"
+            android:layout_marginTop="16dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toButtomOf="@+id/clock_in_button"/>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="295dp"
-        android:layout_marginTop="612dp"
-        android:layout_marginEnd="27dp"
-        android:layout_marginBottom="71dp"
-        android:text="Connect"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:orientation="horizontal"
+        android:layout_weight="0.25">
 
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+
+    </LinearLayout>
+
+
+    </LinearLayout>

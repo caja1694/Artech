@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">Artech</string>
     <string name="clock">Clock</string>
+    <string name="welcome">Welcome!</string>
+    <string name="Timer">Timer</string>
+    <string name="connect">Connect to Bluetooth</string>
 </resources>
