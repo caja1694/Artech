@@ -1,28 +1,29 @@
 package caja1694.students.ju.se.artech;
 
 import org.junit.Test;
-
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 public class TimeKeeperTest {
-    TimeKeeper timeKeeper = new TimeKeeper();
-    @Test
-    public void timeLeftInHours() {
-    }
+    TimeKeeper timeKeeper;
 
     @Test
-    public void timeLeftInMinutes() {
-    }
-
-    @Test
-    public void timeLeftInSeconds_Should_Return_10() {
+    public void timeLeftInMillis_should_return_100(){
         //Arrange
+        timeKeeper = new TimeKeeper(100);
 
         //Act
-        int timeLeftInSeconds = timeKeeper.timeLeftInSeconds();
-        // Assert
-        assertEquals(timeLeftInSeconds, 10);
+        int timeleft = (int)timeKeeper.getTimeLeftInMillis();
 
+        //Assert
+        assertEquals(100, timeleft);
     }
-
+    @Test
+    public void getTimePast_should_return_zero(){
+        // Arrange
+        timeKeeper = new TimeKeeper(10000);
+        // Act
+        long timePast = timeKeeper.getTimePastInMillis();
+        // Assert
+        assertEquals(0, timePast);
+    }
 }

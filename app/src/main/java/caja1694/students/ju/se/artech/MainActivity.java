@@ -1,6 +1,7 @@
 package caja1694.students.ju.se.artech;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
@@ -62,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
 	Boolean isClockedIn = false;
 
 	// Buttons
-	Button connectButton;
+	Button reConnectButton;
 	Button clockInButton;
 	Button startButton;
 	Button sendButton;
@@ -79,6 +80,7 @@ public class MainActivity extends AppCompatActivity {
 	String currentTime = LocalTime.now().toString();
 	String currentDate = LocalDate.now().toString();
 	long startTime;
+	long totalTimePast;
 
 
 	private final BroadcastReceiver brodCastReciever1 = new BroadcastReceiver() {
@@ -89,6 +91,8 @@ public class MainActivity extends AppCompatActivity {
 				switch (state){
 					case BluetoothAdapter.STATE_OFF:
 						Log.d(TAG, "onReceive: BT STATE OFF");
+						reConnectButton.setVisibility(View.VISIBLE);
+						Toast.makeText(MainActivity.this,R.string.Bluetooth_off_message, Toast.LENGTH_LONG).show();
 						break;
 					case BluetoothAdapter.STATE_TURNING_OFF:
 						Log.d(TAG, "brodCastReciever1: BT STATE TURNINF OFF");
@@ -96,6 +100,8 @@ public class MainActivity extends AppCompatActivity {
 
 					case BluetoothAdapter.STATE_ON:
 						Log.d(TAG, "brodCastReciever1: BT STATE ON");
+						reConnectButton.setVisibility(View.GONE);
+						startConnection();
 						break;
 					case BluetoothAdapter.STATE_TURNING_ON:
 						Log.d(TAG, "brodCastReceiver1: BT STATE TURNING ON");
@@ -123,7 +129,7 @@ public class MainActivity extends AppCompatActivity {
 		}
 	};
 
-	BroadcastReceiver dataReceiver = new BroadcastReceiver() {
+	private final BroadcastReceiver dataReceiver = new BroadcastReceiver() {
 		@Override
 		public void onReceive(Context context, Intent intent) {
 			Log.d(TAG, "onReceive dataReceiver: creating message");
@@ -152,55 +158,19 @@ public class MainActivity extends AppCompatActivity {
 		btAdapter = BluetoothAdapter.getDefaultAdapter();
 		incomingData = new StringBuilder();
 		radiation = new Radiation(30, BREAK_ROOM, NO_SUIT);
-		timeKeeper = new TimeKeeper(radiation);
-		startTime = timeKeeper.calculateNewStartTimeInMillis();
+		timeKeeper = new TimeKeeper((long)radiation.getMilliSecondsUntilLimit());
+		startTime = (long)radiation.getMilliSecondsUntilLimit();
+		totalTimePast = 0;
 		warning = new Warning();
 
 		valueEventListener();
 		clockFunction();
-		connect();
-		starter();
+		enableBluetooth();
+		reConnectBtn();
 		sendMessage();
 		LocalBroadcastManager.getInstance(this).registerReceiver(dataReceiver, new IntentFilter("incomingData"));
 		IntentFilter intentFilter = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
 		registerReceiver(brodCastReceiver2, intentFilter);
-	}
-	public void startBTConnection(BluetoothDevice device, UUID uuid){
-		Log.d(TAG, "startConnection: Innitialize bt connection");
-		btConnector.startClient(device, uuid);
-	}
-	public void startConnection(){
-		//uuid = btDevice.getUuids()[0].getUuid();
-		startBTConnection(btDevice, uuid);
-	}
-	private void starter(){
-		startButton = findViewById(R.id.start_button);
-		startButton.setText("start");
-		startButton.setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				pair();
-			}
-		});
-	}
-	private void sendMessage(){
-		sendButton = findViewById(R.id.send_message_button);
-		sendButton.setText("Send");
-		sendButton.setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				send(timeKeeper.toString());
-			}
-		});
-	}
-	private void connect(){
-		connectButton = findViewById(R.id.connect_button);
-		connectButton.setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				enableDisableBluetooth();
-			}
-		});
 	}
 	private void clockFunction() {
 		clockInButton = findViewById(R.id.clock_in_button);
@@ -212,22 +182,65 @@ public class MainActivity extends AppCompatActivity {
 			}
 		});
 	}
+	public void enableBluetooth(){
+		int REQUEST_ENABLE_BT = 1;
+		if(btAdapter == null){
+			Log.d(TAG, "enableBluetooth: Device doesn't support bluetooth");
+		}
+		else if(!btAdapter.isEnabled()){
+			Log.d(TAG, "enableBluetooth: Enabling bluetooth");
+			Intent enableBluetoothIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+			startActivityForResult(enableBluetoothIntent, REQUEST_ENABLE_BT);
+		}
+		IntentFilter btIntent = new IntentFilter(btAdapter.ACTION_STATE_CHANGED);
+		registerReceiver(brodCastReciever1, btIntent);
+		if(btAdapter.isEnabled()){
+			startConnection();
+		}
+	}
+	public void startBTConnection(BluetoothDevice device, UUID uuid){
+		Log.d(TAG, "startConnection: Innitialize bt connection");
+		btConnector.startClient(device, uuid);
+	}
+
+	// Sending the timeStamp.
+	private void sendMessage(){
+		sendButton = findViewById(R.id.send_message_button);
+		sendButton.setText("Send");
+		sendButton.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				send(timeKeeper.toString());
+			}
+		});
+	}
+
+	private void reConnectBtn(){
+		reConnectButton = findViewById(R.id.connect_button);
+		reConnectButton.setVisibility(View.GONE);
+		reConnectButton.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				enableBluetooth();
+			}
+		});
+	}
 
 	void startTimer(){
 		mCountDownTimer = new CountDownTimer(timeKeeper.getStartTimeInMillis(), 1000) {
 			@Override
 			public void onTick(long millisUntilFinished) {
 				timeKeeper.setTimeLeftInMillis(millisUntilFinished);
-				calculateTimeLeftInMillis();
+				ReCalculateTimeLeftInMillis();
 
 				updateTimer(timeKeeper.toString());
 				Log.d(TAG, "onTick: timekeeper.toString: " + timeKeeper.toString());
 
-				if(timeKeeper.timeLeftInSeconds() == 600){ warning.createMinuteWarning("10").sendthisWarning(MainActivity.this); }
+				if(timeKeeper.timeLeftInSeconds() == 600){ warning.createIntervalWarning("10").sendWarning(MainActivity.this); }
 
-				if(timeKeeper.timeLeftInSeconds() == 300){ warning.createMinuteWarning("5").sendthisWarning(MainActivity.this);  }
+				if(timeKeeper.timeLeftInSeconds() == 300){ warning.createIntervalWarning("5").sendWarning(MainActivity.this);  }
 
-				if(timeKeeper.timeLeftInSeconds() == 60) { warning.createMinuteWarning("1").sendthisWarning(MainActivity.this);  }
+				if(timeKeeper.timeLeftInSeconds() == 60) { warning.createIntervalWarning("1").sendWarning(MainActivity.this);  }
 
 				// Update LCD time.
 				/*
@@ -246,24 +259,17 @@ public class MainActivity extends AppCompatActivity {
 
 	void stopTimer(){
 		mCountDownTimer.cancel();
-		timeKeeper.calculateNewStartTimeInMillis();
-	}
-	// Should be done by timekeeper
-	public long calculateStartTimeInMillis(){
-		double exposurePerMiliSecond = radiation.getUnitExposurePerMilliSecond();
-		double startTime = radiation.getRadioationLimit()/exposurePerMiliSecond;
-		return (long) startTime;
+		// We should maybe do timeKeeper = new TimeKeeper(radiation.getMillisUntilLimit)
+		// And set totalTimePast to 0. This would mean you can only clock in/out once each day.
+		// Second option is setting a listener for "new date" and reset and run those 2 lines.
 	}
 
-	public void calculateTimeLeftInMillis(){
-		long timePast =  startTime - timeKeeper.getTimeLeftInMillis();
-		long timeLeft =  timeKeeper.calculateNewStartTimeInMillis() - timePast;
-
-		Log.d(TAG, "startTime: " + startTime + "timePast: " + timePast + "timeLeft: " + timeLeft);
-
-		timeKeeper.setTimeLeftInMillis(timeLeft);
+	public void ReCalculateTimeLeftInMillis(){
+		totalTimePast += timeKeeper.getTimePastInMillis();
+		long timeLeft =  (long)radiation.getMilliSecondsUntilLimit() - totalTimePast;
+		Log.d(TAG, "ReCalculateTimeLeftInMillis: timeLeft: " + timeLeft);
+		timeKeeper = new TimeKeeper(timeLeft);
 	}
-
 
 	void updateTimer(String timeLeft){
 		TextView countdownText = findViewById(R.id.countdownTimer);
@@ -287,17 +293,18 @@ public class MainActivity extends AppCompatActivity {
 	}
 
 	void valueEventListener(){
+		Log.d(TAG, "valueEventListener: Listening for status updates in database");
 		ValueEventListener statusListener = new ValueEventListener() {
 			@Override
 			public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
 				try {
 					String technichianStatus = dataSnapshot.getValue().toString();
 					if (technichianStatus.equals(OverstayedStatus)) {
-						systemWideWarning.sendthisWarning(MainActivity.this);
+						systemWideWarning.sendWarning(MainActivity.this);
 					}
 				}
 				catch (NullPointerException exception){
-					System.out.println("Nullpointer exception in valueEventListener, probably couz there are no clock ins yet on this date");
+					Log.d(TAG, "onDataChange: Listening on a date not yet created?");
 				}
 			}
 			@Override
@@ -307,94 +314,71 @@ public class MainActivity extends AppCompatActivity {
 		};
 		dbManager.getStatusRef().addValueEventListener(statusListener);
 	}
-
-	public void enableDisableBluetooth(){
-		int REQUEST_ENABLE_BT = 1;
-
-		if(btAdapter == null){
-			Log.d(TAG, "enableDisableBluetooth: Device doesn't support bluetooth");
-		}
-		else if(!btAdapter.isEnabled()){
-			Log.d(TAG, "enableDisableBluetooth: Enabelning bluetooth");
-			Intent enableBluetoothIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-			startActivityForResult(enableBluetoothIntent, REQUEST_ENABLE_BT);
-
-			IntentFilter btIntent = new IntentFilter(btAdapter.ACTION_STATE_CHANGED);
-			registerReceiver(brodCastReciever1, btIntent);
-		}
-		else if(btAdapter.isEnabled()){
-			Log.d(TAG, "enableDisableBluetooth: Disabling bluetooth");
-			btAdapter.disable();
-
-			IntentFilter btIntent = new IntentFilter(btAdapter.ACTION_STATE_CHANGED);
-			registerReceiver(brodCastReciever1, btIntent);
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+		super.onActivityResult(requestCode, resultCode, data);
+		if(resultCode == 0){
+			reConnectButton.setVisibility(View.VISIBLE);
+			// Allow user to re-reConnectBtn
 		}
 	}
-	public void pair(){
-		btAdapter.cancelDiscovery();
-		 Log.d(TAG, "pair: Pairing");
-		btDevice = btAdapter.getRemoteDevice(HC06);
 
-		Log.d(TAG, "pair: btDevice: " + btDevice);
-		if (btDevice != null) {
-			try {
-				Log.d(TAG, "pair: in if: " + btDevice.getName());
+	public void startConnection(){
+		btAdapter.cancelDiscovery();
+		 Log.d(TAG, "startConnection: Pairing");
+		btDevice = btAdapter.getRemoteDevice(HC06);
+		try{
 				btDevice.createBond();
-				Log.d(TAG, "pair: device UUID" + btDevice.getUuids()[0].toString());
 				btConnector = new BluetoothConnector(MainActivity.this);
-				Log.d(TAG, "pair: BONDED = " + (btDevice.getBondState() == BluetoothDevice.BOND_BONDED) + btDevice.getName());
+				Log.d(TAG, "startConnection: BONDED to: " + btDevice.getName() + " Starting bt connection...");
+				startBTConnection(btDevice, uuid);
+			} catch(NullPointerException e){
+				Log.d(TAG, "startConnection: IOException" + e);
 			}
-		catch(NullPointerException e){
-				Log.d(TAG, "pair: IOException" + e);
-			}
-		}
-		startConnection();
 
 	}
 
 	public void send(String message){
-		Log.d(TAG, "MainActivity send:");
+		Log.d(TAG, "MainActivity sending: ''" + message + "''");
 		byte [] bytes = message.getBytes(Charset.defaultCharset());
 		btConnector.write(bytes);
 	}
-	public void recieveMessage(){
-		Log.d(TAG, "recieveMessage: Incomingdata: " + incomingData);
-	}
+
 	public void handleIncomingData(String data){
 		switch (data){
 			case "a":
 				radiation.setRoomCoefficient(BREAK_ROOM);
 				Log.d(TAG, "handleIncomingData: BREAK_ROOM");
-				calculateTimeLeftInMillis();
+				ReCalculateTimeLeftInMillis();
 				dbManager.setLog(currentTime, "Entered break room");
 				break;
 			case "b":
 				radiation.setRoomCoefficient(CONTROL_ROOM);
 				Log.d(TAG, "handleIncomingData: CONTROL_ROOM");
-				calculateTimeLeftInMillis();
+				ReCalculateTimeLeftInMillis();
 				dbManager.setLog(currentTime, "Entered control room");
 				break;
 			case "c":
 				radiation.setRoomCoefficient(REACTOR_ROOM);
 				Log.d(TAG, "handleIncomingData: REACTOR_ROOM");
-				calculateTimeLeftInMillis();
+				ReCalculateTimeLeftInMillis();
 				dbManager.setLog(currentTime, "Entered reactor room");
 				break;
 			case "x":
 				radiation.setRoomCoefficient(BREAK_ROOM);
 				Log.d(TAG, "handleIncomingData: BREAK_ROOM");
-				calculateTimeLeftInMillis();
+				ReCalculateTimeLeftInMillis();
 				break;
 			case "y":
 				radiation.setProtectionCoefficient(HAZMAT_SUIT);
 				Log.d(TAG, "handleIncomingData: HAZMAT_SUIT");
-				calculateTimeLeftInMillis();
+				ReCalculateTimeLeftInMillis();
 				dbManager.setLog(currentTime, "Suit On");
 				break;
 			case "n":
 				radiation.setProtectionCoefficient(NO_SUIT);
 				Log.d(TAG, "handleIncomingData: NO_SUIT");
-				calculateTimeLeftInMillis();
+				ReCalculateTimeLeftInMillis();
 				dbManager.setLog(currentTime, " Suit Off");
 				break;
 			case "i":

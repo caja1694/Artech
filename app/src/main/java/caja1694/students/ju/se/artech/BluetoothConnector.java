@@ -74,6 +74,8 @@ public class BluetoothConnector {
                     Log.d(TAG, "run: Connect thread unable to close connection in socket" + e.getMessage());
                 }
                 Log.d(TAG, "run: Connect thread could not connect to uuid" + deviceUUID);
+            } catch (NullPointerException e){
+                Log.d(TAG, "run: No bluetooth connection" + e.getMessage());
             }
             connected(btSocket, btDevice);
         }

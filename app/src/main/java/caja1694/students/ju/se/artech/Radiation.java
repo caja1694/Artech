@@ -6,6 +6,8 @@ public class Radiation {
     private double protectionCoefficient;
     final static private double radioationLimit = 500000;
 
+    public  Radiation(){}
+
     public Radiation(double reactorOutputPerSecond, double roomCoefficient, double protectionCoefficient){
         this.reactorOutputPerSecond = reactorOutputPerSecond;
         this.roomCoefficient = roomCoefficient;
@@ -28,6 +30,10 @@ public class Radiation {
 
     public void setReactorOutputPerSecond(double reactorOutputPerSecond) {
         this.reactorOutputPerSecond = reactorOutputPerSecond;
+    }
+
+    public double getMilliSecondsUntilLimit(){
+        return this.getRadioationLimit()/this.getUnitExposurePerMilliSecond();
     }
 
     public double getProtectionCoefficient() {

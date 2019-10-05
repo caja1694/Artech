@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">Artech</string>
     <string name="clock">Clock</string>
+    <string name="Bluetooth_off_message">You turned off bluetooth, pleace turn back on to connect to Safe Console!</string>
 </resources>

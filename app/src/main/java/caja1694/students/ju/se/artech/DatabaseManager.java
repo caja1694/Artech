@@ -39,7 +39,6 @@ public class DatabaseManager {
 
     public void setLog(String child, String value) {
         logReference.child(value).push().setValue(child);
-
     }
 
     public DatabaseReference getStatusRef() {

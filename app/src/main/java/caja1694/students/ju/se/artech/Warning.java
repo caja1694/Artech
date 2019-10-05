@@ -23,7 +23,7 @@ public class Warning extends Application {
         this.body = "Someone has overstayed the radiation time limit!";
         return this;
     }
-    public Warning createMinuteWarning(String minutes){
+    public Warning createIntervalWarning(String minutes){
         this.title = "" + minutes + " minutes left";
         this.body = "You have "+ minutes + " minutes until you have reached the daily radiation limit";
         return this;
@@ -37,9 +37,8 @@ public class Warning extends Application {
         return title;
     }
 
-    public void sendthisWarning(Context mContext){
+    public void sendWarning(Context mContext){
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(mContext);
-
         Notification notification = new NotificationCompat.Builder(mContext, "Channel1")
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setContentTitle(this.title)
