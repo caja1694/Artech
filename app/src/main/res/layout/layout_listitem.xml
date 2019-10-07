@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="15dp"
+    android:id="@+id/parent_layout">
+
+    <TextView
+        android:layout_width="110dp"
+        android:layout_height="80dp"
+        android:text="2019-12-55"
+
+        android:id="@+id/date"
+        android:textSize="20dp"
+        android:textColor="#000"
+        />
+
+    <TextView
+        android:id="@+id/hours"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toRightOf="@id/date"
+        android:text="hours"
+        android:paddingLeft="30dp"
+        android:textColor="#000"
+        android:textSize="17dp" />
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Radiation level"
+        android:id="@+id/radiationlevel"
+        android:layout_toRightOf="@id/date"
+        android:layout_below="@id/hours"
+        android:paddingLeft="30dp"
+        android:layout_marginTop="10dp"
+        android:textSize="17dp"
+        android:textColor="#000"
+        />
+
+</RelativeLayout>
