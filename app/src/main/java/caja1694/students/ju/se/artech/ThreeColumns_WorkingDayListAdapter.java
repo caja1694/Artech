@@ -40,6 +40,18 @@ public class ThreeColumns_WorkingDayListAdapter extends ArrayAdapter<WorkingDay>
             TextView hours=convertView.findViewById(R.id.workingHours);
             TextView level=convertView.findViewById(R.id.radlvl);
 
+            date.setText(workingDay.getDate());
+
+            hours.setText(workingDay.getHours());
+
+            level.setText(workingDay.getRadiationLevel());
+
+        }
+        else{
+            TextView date=convertView.findViewById(R.id.date);
+            TextView hours=convertView.findViewById(R.id.workingHours);
+            TextView level=convertView.findViewById(R.id.radlvl);
+
             date.setText("20160202");
 
             hours.setText("2");

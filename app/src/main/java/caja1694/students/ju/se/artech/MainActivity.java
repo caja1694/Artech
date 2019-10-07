@@ -204,11 +204,16 @@ public class MainActivity extends AppCompatActivity {
 			Intent enableBluetoothIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
 			startActivityForResult(enableBluetoothIntent, REQUEST_ENABLE_BT);
 		}
-		IntentFilter btIntent = new IntentFilter(btAdapter.ACTION_STATE_CHANGED);
-		registerReceiver(brodCastReciever1, btIntent);
-		if(btAdapter.isEnabled()){
-			startConnection();
+		try{
+			IntentFilter btIntent = new IntentFilter(btAdapter.ACTION_STATE_CHANGED);
+			registerReceiver(brodCastReciever1, btIntent);
+			if(btAdapter.isEnabled()) {
+				startConnection();
+			}
+		} catch (NullPointerException e){
+			Log.d(TAG, "enableBluetooth: " + e.getMessage());
 		}
+
 	}
 	public void startBTConnection(BluetoothDevice device, UUID uuid){
 		Log.d(TAG, "startConnection: Innitialize bt connection");
