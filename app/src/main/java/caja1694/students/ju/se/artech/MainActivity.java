@@ -65,8 +65,8 @@ public class MainActivity extends AppCompatActivity {
 	// Buttons
 	Button reConnectButton;
 	Button clockInButton;
-	Button startButton;
 	Button sendButton;
+	Button historyButton;
 
 	//Bluetooth
 	BluetoothAdapter btAdapter;
@@ -171,6 +171,18 @@ public class MainActivity extends AppCompatActivity {
 		LocalBroadcastManager.getInstance(this).registerReceiver(dataReceiver, new IntentFilter("incomingData"));
 		IntentFilter intentFilter = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
 		registerReceiver(brodCastReceiver2, intentFilter);
+		goToHistoryActivity();
+	}
+
+	public void goToHistoryActivity(){
+		historyButton = findViewById(R.id.historyButton);
+		historyButton.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				Intent intent = new Intent(MainActivity.this, HistoryActivity.class);
+				startActivity(intent);
+			}
+	});
 	}
 	private void clockFunction() {
 		clockInButton = findViewById(R.id.clock_in_button);

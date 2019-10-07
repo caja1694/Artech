@@ -2,4 +2,7 @@
     <string name="app_name">Artech</string>
     <string name="clock">Clock</string>
     <string name="Bluetooth_off_message">You turned off bluetooth, pleace turn back on to connect to Safe Console!</string>
+    <string name="date">Date</string>
+    <string name="hours">Hours></string>
+    <string name="level">Rad-Level</string>
 </resources>
