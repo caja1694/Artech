@@ -6,6 +6,7 @@ public class TimeKeeper extends AppCompatActivity {
 
     private long startTimeInMillis;
     private long timeLeftInMillis;
+    private long timeWorked;
 
     public TimeKeeper(){}
 
@@ -29,6 +30,15 @@ public class TimeKeeper extends AppCompatActivity {
     public void setTimeLeftInMillis(long timeLeftInMillis) {
         this.timeLeftInMillis = timeLeftInMillis;
     }
+
+    public void setTimeWorked(long timeWorked) {
+        this.timeWorked = timeWorked;
+    }
+
+    public long getTimeWorked() {
+        return timeWorked;
+    }
+
     public long getTimePastInMillis(){
         return startTimeInMillis - timeLeftInMillis;
     }

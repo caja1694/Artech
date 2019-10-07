@@ -25,6 +25,7 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.ValueEventListener;
 
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -65,7 +66,6 @@ public class MainActivity extends AppCompatActivity {
 	// Buttons
 	Button reConnectButton;
 	Button clockInButton;
-	Button startButton;
 	Button sendButton;
 
 	//Bluetooth
@@ -167,7 +167,7 @@ public class MainActivity extends AppCompatActivity {
 		clockFunction();
 		enableBluetooth();
 		reConnectBtn();
-		sendMessage();
+		sendMessage(); // Only for testing sending messages, should  be removed,
 		LocalBroadcastManager.getInstance(this).registerReceiver(dataReceiver, new IntentFilter("incomingData"));
 		IntentFilter intentFilter = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
 		registerReceiver(brodCastReceiver2, intentFilter);
@@ -192,10 +192,14 @@ public class MainActivity extends AppCompatActivity {
 			Intent enableBluetoothIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
 			startActivityForResult(enableBluetoothIntent, REQUEST_ENABLE_BT);
 		}
-		IntentFilter btIntent = new IntentFilter(btAdapter.ACTION_STATE_CHANGED);
-		registerReceiver(brodCastReciever1, btIntent);
-		if(btAdapter.isEnabled()){
-			startConnection();
+		try {
+			IntentFilter btIntent = new IntentFilter(btAdapter.ACTION_STATE_CHANGED);
+			registerReceiver(brodCastReciever1, btIntent);
+			if (btAdapter.isEnabled()) {
+				startConnection();
+			}
+		} catch (NullPointerException e){
+			Log.d(TAG, "enableBluetooth: " + e.getMessage());
 		}
 	}
 	public void startBTConnection(BluetoothDevice device, UUID uuid){
@@ -203,14 +207,16 @@ public class MainActivity extends AppCompatActivity {
 		btConnector.startClient(device, uuid);
 	}
 
-	// Sending the timeStamp.
+	// Tester, press the button to do something
 	private void sendMessage(){
 		sendButton = findViewById(R.id.send_message_button);
 		sendButton.setText("Send");
 		sendButton.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				send(timeKeeper.toString());
+				// Write code for testing something
+				radiation.setRoomCoefficient(REACTOR_ROOM);
+				ReCalculateTimeLeftInMillis();
 			}
 		});
 	}
@@ -231,22 +237,10 @@ public class MainActivity extends AppCompatActivity {
 			@Override
 			public void onTick(long millisUntilFinished) {
 				timeKeeper.setTimeLeftInMillis(millisUntilFinished);
-				ReCalculateTimeLeftInMillis();
-
+				//ReCalculateTimeLeftInMillis();
 				updateTimer(timeKeeper.toString());
-				Log.d(TAG, "onTick: timekeeper.toString: " + timeKeeper.toString());
-
-				if(timeKeeper.timeLeftInSeconds() == 600){ warning.createIntervalWarning("10").sendWarning(MainActivity.this); }
-
-				if(timeKeeper.timeLeftInSeconds() == 300){ warning.createIntervalWarning("5").sendWarning(MainActivity.this);  }
-
-				if(timeKeeper.timeLeftInSeconds() == 60) { warning.createIntervalWarning("1").sendWarning(MainActivity.this);  }
-
-				// Update LCD time.
-				/*
-				if(btConnector != null){
-					send(timeKeeper.toString());
-				}*/
+				checkForInterValWarning();
+				radiation.setTodaysExposure(totalTimePast);
 			}
 			@Override
 			public void onFinish(){
@@ -256,21 +250,25 @@ public class MainActivity extends AppCompatActivity {
 			}
 		}.start();
 	}
-
+	void checkForInterValWarning(){
+		if(timeKeeper.timeLeftInSeconds() == 600){ warning.createIntervalWarning("10").sendWarning(MainActivity.this); }
+		if(timeKeeper.timeLeftInSeconds() == 300){ warning.createIntervalWarning("5").sendWarning(MainActivity.this);  }
+		if(timeKeeper.timeLeftInSeconds() == 60) { warning.createIntervalWarning("1").sendWarning(MainActivity.this);  }
+	}
 	void stopTimer(){
 		mCountDownTimer.cancel();
-		// We should maybe do timeKeeper = new TimeKeeper(radiation.getMillisUntilLimit)
-		// And set totalTimePast to 0. This would mean you can only clock in/out once each day.
-		// Second option is setting a listener for "new date" and reset and run those 2 lines.
 	}
-
 	public void ReCalculateTimeLeftInMillis(){
 		totalTimePast += timeKeeper.getTimePastInMillis();
 		long timeLeft =  (long)radiation.getMilliSecondsUntilLimit() - totalTimePast;
 		Log.d(TAG, "ReCalculateTimeLeftInMillis: timeLeft: " + timeLeft);
 		timeKeeper = new TimeKeeper(timeLeft);
+		restartTimer();
 	}
-
+	void restartTimer(){
+		stopTimer();
+		startTimer();
+	}
 	void updateTimer(String timeLeft){
 		TextView countdownText = findViewById(R.id.countdownTimer);
 		countdownText.setText(timeLeft);
@@ -284,6 +282,7 @@ public class MainActivity extends AppCompatActivity {
 	void clockOut(){
 		isClockedIn = false;
 		updateStatusText("Clocked Out");
+		timeKeeper.setTimeWorked(totalTimePast);
 		dbManager.addClockOutTime(currentTime);
 		stopTimer();
 	}
@@ -291,7 +290,6 @@ public class MainActivity extends AppCompatActivity {
 		TextView textView = findViewById(R.id.status);
 		textView.setText(text);
 	}
-
 	void valueEventListener(){
 		Log.d(TAG, "valueEventListener: Listening for status updates in database");
 		ValueEventListener statusListener = new ValueEventListener() {

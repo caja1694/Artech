@@ -5,6 +5,7 @@ public class Radiation {
     private double roomCoefficient;
     private double protectionCoefficient;
     final static private double radioationLimit = 500000;
+    private double todaysExposure;
 
     public  Radiation(){}
 
@@ -22,6 +23,14 @@ public class Radiation {
     }
     public double getRadioationLimit(){
         return this.radioationLimit;
+    }
+
+    public void setTodaysExposure(long timePast) {
+        this.todaysExposure = getUnitExposurePerMilliSecond()*(double)timePast;
+    }
+
+    public double getTodaysExposure() {
+        return todaysExposure;
     }
 
     public double getReactorOutputPerSecond() {
