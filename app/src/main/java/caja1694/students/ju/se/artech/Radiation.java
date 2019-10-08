@@ -60,4 +60,7 @@ public class Radiation {
     public void setRoomCoefficient(double roomCoefficient) {
         this.roomCoefficient = roomCoefficient;
     }
+    public String toString(double radiation){
+        return String.valueOf(radiation);
+    }
 }

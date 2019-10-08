@@ -37,8 +37,14 @@ public class DatabaseManager {
         statusRef.setValue(status);
     }
 
-    public void setLog(String child, String value) {
-        logReference.child(value).push().setValue(child);
+    public void setLog(String value, String child) {
+        logReference.child(child).push().setValue(value);
+    }
+    public void setShiftTime(String time){
+        logReference.child("Shift time").setValue(time);
+    }
+    public void setRadiationExposure(String radiationExposure){
+        logReference.child("Radiation exposure").setValue(radiationExposure);
     }
 
     public DatabaseReference getStatusRef() {

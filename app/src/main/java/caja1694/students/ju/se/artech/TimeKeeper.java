@@ -6,7 +6,7 @@ public class TimeKeeper extends AppCompatActivity {
 
     private long startTimeInMillis;
     private long timeLeftInMillis;
-    private long timeWorked;
+    private String timeWorked;
 
     public TimeKeeper(){}
 
@@ -31,11 +31,11 @@ public class TimeKeeper extends AppCompatActivity {
         this.timeLeftInMillis = timeLeftInMillis;
     }
 
-    public void setTimeWorked(long timeWorked) {
+    public void setTimeWorked(String timeWorked) {
         this.timeWorked = timeWorked;
     }
 
-    public long getTimeWorked() {
+    public String getTimeWorked() {
         return timeWorked;
     }
 
@@ -60,6 +60,31 @@ public class TimeKeeper extends AppCompatActivity {
         int minutes = timeLeftInMinutes()%60;
         int seconds = timeLeftInSeconds()%60;
 
+        String timeText;
+        if(hours < 10){
+            timeText = "0" + hours;
+        }
+        else {
+            timeText = "" + hours;
+        }
+        if(minutes < 10){
+            timeText += ":0" + minutes;
+        }
+        else{
+            timeText += ":" + minutes;
+        }
+        if(seconds < 10){
+            timeText += ":0" + seconds;
+        }
+        else{
+            timeText += ":" + seconds;
+        }
+        return timeText;
+    }
+    public String toString(long millis){
+        int hours = (int) millis / (60000 * 60);
+        int minutes = (int) (millis / 60000) %60;
+        int seconds = (int) (millis / 1000) %60;
         String timeText;
         if(hours < 10){
             timeText = "0" + hours;

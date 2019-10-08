@@ -25,10 +25,10 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.ValueEventListener;
 
-import java.io.IOException;
 import java.nio.charset.Charset;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.HashMap;
 import java.util.UUID;
 
 
@@ -41,6 +41,7 @@ public class MainActivity extends AppCompatActivity {
 	final static String FabiansIphone = "74:B5:87:A9:48:68";
 	final static String DennisAndroid = "7C:A1:77:72:BE:42";
 	final static String MariasIphone = "A4:D9:31:4A:6D:F0";
+	final static long ONE_SECOND = 1000;
 
 	final static double BREAK_ROOM = 0.1;
 	final static double CONTROL_ROOM = 0.5;
@@ -62,6 +63,7 @@ public class MainActivity extends AppCompatActivity {
 	DatabaseManager dbManager;
 
 	Boolean isClockedIn = false;
+	Boolean nextMessageIsRadiation = false;
 
 	// Buttons
 	Button reConnectButton;
@@ -77,7 +79,6 @@ public class MainActivity extends AppCompatActivity {
 	// Time
 	CountDownTimer mCountDownTimer;
 	TimeKeeper timeKeeper;
-	String currentTime = LocalTime.now().toString();
 	String currentDate = LocalDate.now().toString();
 	long startTime;
 	long totalTimePast;
@@ -167,7 +168,7 @@ public class MainActivity extends AppCompatActivity {
 		clockFunction();
 		enableBluetooth();
 		reConnectBtn();
-		sendMessage(); // Only for testing sending messages, should  be removed,
+		tester(); // Only for testing sending messages, should  be removed,
 		LocalBroadcastManager.getInstance(this).registerReceiver(dataReceiver, new IntentFilter("incomingData"));
 		IntentFilter intentFilter = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
 		registerReceiver(brodCastReceiver2, intentFilter);
@@ -208,15 +209,16 @@ public class MainActivity extends AppCompatActivity {
 	}
 
 	// Tester, press the button to do something
-	private void sendMessage(){
+	private void tester(){
 		sendButton = findViewById(R.id.send_message_button);
 		sendButton.setText("Send");
 		sendButton.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
 				// Write code for testing something
-				radiation.setRoomCoefficient(REACTOR_ROOM);
-				ReCalculateTimeLeftInMillis();
+				//radiation.setRoomCoefficient(REACTOR_ROOM);
+				//reCalculateTimeLeftInMillis();
+				send("w");
 			}
 		});
 	}
@@ -231,13 +233,12 @@ public class MainActivity extends AppCompatActivity {
 			}
 		});
 	}
-
-	void startTimer(){
-		mCountDownTimer = new CountDownTimer(timeKeeper.getStartTimeInMillis(), 1000) {
+	public void startTimer(){
+		mCountDownTimer = new CountDownTimer(timeKeeper.getStartTimeInMillis(), ONE_SECOND) {
 			@Override
 			public void onTick(long millisUntilFinished) {
 				timeKeeper.setTimeLeftInMillis(millisUntilFinished);
-				//ReCalculateTimeLeftInMillis();
+				totalTimePast += ONE_SECOND;
 				updateTimer(timeKeeper.toString());
 				checkForInterValWarning();
 				radiation.setTodaysExposure(totalTimePast);
@@ -246,51 +247,58 @@ public class MainActivity extends AppCompatActivity {
 			public void onFinish(){
 				if(isClockedIn){
 					dbManager.setStatus(OverstayedStatus);
+					dbManager.setLog(getCurrentTime(), "Overstayed the radiation limit");
+					send("w"); // Send warning to BT device
 				}
 			}
 		}.start();
 	}
-	void checkForInterValWarning(){
+	public void checkForInterValWarning(){
 		if(timeKeeper.timeLeftInSeconds() == 600){ warning.createIntervalWarning("10").sendWarning(MainActivity.this); }
 		if(timeKeeper.timeLeftInSeconds() == 300){ warning.createIntervalWarning("5").sendWarning(MainActivity.this);  }
 		if(timeKeeper.timeLeftInSeconds() == 60) { warning.createIntervalWarning("1").sendWarning(MainActivity.this);  }
 	}
-	void stopTimer(){
+	public void stopTimer(){
 		mCountDownTimer.cancel();
 	}
-	public void ReCalculateTimeLeftInMillis(){
-		totalTimePast += timeKeeper.getTimePastInMillis();
+	public void reCalculateTimeLeftInMillis(){
 		long timeLeft =  (long)radiation.getMilliSecondsUntilLimit() - totalTimePast;
-		Log.d(TAG, "ReCalculateTimeLeftInMillis: timeLeft: " + timeLeft);
+		Log.d(TAG, "reCalculateTimeLeftInMillis: timeLeft: " + timeLeft);
 		timeKeeper = new TimeKeeper(timeLeft);
 		restartTimer();
 	}
-	void restartTimer(){
+	public void restartTimer(){
 		stopTimer();
 		startTimer();
 	}
-	void updateTimer(String timeLeft){
+	public void updateTimer(String timeLeft){
 		TextView countdownText = findViewById(R.id.countdownTimer);
 		countdownText.setText(timeLeft);
 	}
-	void clockIn(){
-		isClockedIn = true;
-		updateStatusText("Clocked In");
-		dbManager.addClockInTime(currentTime);
-		startTimer();
+	public void clockIn(){
+		if(!isClockedIn) {
+			isClockedIn = true;
+			updateStatusText("Clocked In");
+			dbManager.addClockInTime(getCurrentTime());
+			startTimer();
+		}
 	}
-	void clockOut(){
-		isClockedIn = false;
-		updateStatusText("Clocked Out");
-		timeKeeper.setTimeWorked(totalTimePast);
-		dbManager.addClockOutTime(currentTime);
-		stopTimer();
+	public void clockOut(){
+		if(isClockedIn) {
+			isClockedIn = false;
+			updateStatusText("Clocked Out");
+			String shiftTime = timeKeeper.toString(totalTimePast);
+			dbManager.setShiftTime(shiftTime);
+			dbManager.setRadiationExposure(String.valueOf(radiation.getTodaysExposure()));
+			dbManager.addClockOutTime(getCurrentTime());
+			stopTimer();
+		}
 	}
-	void updateStatusText(String text){
+	public void updateStatusText(String text){
 		TextView textView = findViewById(R.id.status);
 		textView.setText(text);
 	}
-	void valueEventListener(){
+	public void valueEventListener(){
 		Log.d(TAG, "valueEventListener: Listening for status updates in database");
 		ValueEventListener statusListener = new ValueEventListener() {
 			@Override
@@ -320,7 +328,6 @@ public class MainActivity extends AppCompatActivity {
 			// Allow user to re-reConnectBtn
 		}
 	}
-
 	public void startConnection(){
 		btAdapter.cancelDiscovery();
 		 Log.d(TAG, "startConnection: Pairing");
@@ -335,58 +342,73 @@ public class MainActivity extends AppCompatActivity {
 			}
 
 	}
-
 	public void send(String message){
 		Log.d(TAG, "MainActivity sending: ''" + message + "''");
 		byte [] bytes = message.getBytes(Charset.defaultCharset());
 		btConnector.write(bytes);
 	}
-
 	public void handleIncomingData(String data){
-		switch (data){
-			case "a":
-				radiation.setRoomCoefficient(BREAK_ROOM);
-				Log.d(TAG, "handleIncomingData: BREAK_ROOM");
-				ReCalculateTimeLeftInMillis();
-				dbManager.setLog(currentTime, "Entered break room");
-				break;
-			case "b":
-				radiation.setRoomCoefficient(CONTROL_ROOM);
-				Log.d(TAG, "handleIncomingData: CONTROL_ROOM");
-				ReCalculateTimeLeftInMillis();
-				dbManager.setLog(currentTime, "Entered control room");
-				break;
-			case "c":
-				radiation.setRoomCoefficient(REACTOR_ROOM);
-				Log.d(TAG, "handleIncomingData: REACTOR_ROOM");
-				ReCalculateTimeLeftInMillis();
-				dbManager.setLog(currentTime, "Entered reactor room");
-				break;
-			case "x":
-				radiation.setRoomCoefficient(BREAK_ROOM);
-				Log.d(TAG, "handleIncomingData: BREAK_ROOM");
-				ReCalculateTimeLeftInMillis();
-				break;
-			case "y":
-				radiation.setProtectionCoefficient(HAZMAT_SUIT);
-				Log.d(TAG, "handleIncomingData: HAZMAT_SUIT");
-				ReCalculateTimeLeftInMillis();
-				dbManager.setLog(currentTime, "Suit On");
-				break;
-			case "n":
-				radiation.setProtectionCoefficient(NO_SUIT);
-				Log.d(TAG, "handleIncomingData: NO_SUIT");
-				ReCalculateTimeLeftInMillis();
-				dbManager.setLog(currentTime, " Suit Off");
-				break;
-			case "i":
-				clockIn();
-				break;
-			case "o":
-				clockOut();
-				break;
+		Log.d(TAG, "handleIncomingData: data: " + data);
+			if(data.length() > 1){
+				Log.d(TAG, "handleIncomingData: data > 1: " + Double.valueOf(data));
+				radiationLevelChange(Double.valueOf(data));
+			}
+			switch (data) {
+				case "a":
+					roomChange(BREAK_ROOM);
+					dbManager.setLog(getCurrentTime(), "Entered break room");
+					break;
+				case "b":
+					roomChange(CONTROL_ROOM);
+					dbManager.setLog(getCurrentTime(), "Entered control room");
+					break;
+				case "c":
+					roomChange(REACTOR_ROOM);
+					dbManager.setLog(getCurrentTime(), "Entered reactor room");
+					break;
+				case "y":
+					suitChange(HAZMAT_SUIT);
+					dbManager.setLog(getCurrentTime(), "Suit On");
+					break;
+				case "n":
+					suitChange(NO_SUIT);
+					dbManager.setLog(getCurrentTime(), " Suit Off");
+					break;
+				case "i":
+					clockIn();
+					break;
+				case "o":
+					clockOut();
+			}
 
-
+	}
+	public void roomChange(double room){
+		Log.d(TAG, "roomChange: RoomCoefficiant changed to: " + room);
+		if(isClockedIn) {
+			radiation.setRoomCoefficient(room);
+			reCalculateTimeLeftInMillis();
 		}
+		else{
+			Log.d(TAG, "roomChange: User is not clocked in");
+		}
+	}
+	public void suitChange(double suit){
+		Log.d(TAG, "suitChange: ProtectionCoefficiant changed to: " + suit);
+		if (isClockedIn){
+			radiation.setProtectionCoefficient(suit);
+			reCalculateTimeLeftInMillis();
+		}
+		else{
+			Log.d(TAG, "suitChange: User is not clocked in");
+		}
+
+	}
+	public void radiationLevelChange(Double radiationLevel){
+		radiation.setReactorOutputPerSecond(radiationLevel);
+		reCalculateTimeLeftInMillis();
+	}
+
+	public String getCurrentTime(){
+		return LocalTime.now().toString();
 	}
 }
