@@ -28,7 +28,6 @@ import com.google.firebase.database.ValueEventListener;
 import java.nio.charset.Charset;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.HashMap;
 import java.util.UUID;
 
 
@@ -63,7 +62,6 @@ public class MainActivity extends AppCompatActivity {
 	DatabaseManager dbManager;
 
 	Boolean isClockedIn = false;
-	Boolean nextMessageIsRadiation = false;
 
 	// Buttons
 	Button reConnectButton;
@@ -80,7 +78,7 @@ public class MainActivity extends AppCompatActivity {
 	// Time
 	CountDownTimer mCountDownTimer;
 	TimeKeeper timeKeeper;
-	String currentDate = LocalDate.now().toString();
+	String currentDate = LocalDate.now().toString();//"2019-09-22";
 	long startTime;
 	long totalTimePast;
 
@@ -267,6 +265,7 @@ public class MainActivity extends AppCompatActivity {
 		}.start();
 	}
 	public void checkForInterValWarning(){
+		// Make sure invervall warnings get sent if we jump past a certain time.. With maybe boolean warning 1 / 2 / 3 sent = true / false;
 		if(timeKeeper.timeLeftInSeconds() == 600){ warning.createIntervalWarning("10").sendWarning(MainActivity.this); }
 		if(timeKeeper.timeLeftInSeconds() == 300){ warning.createIntervalWarning("5").sendWarning(MainActivity.this);  }
 		if(timeKeeper.timeLeftInSeconds() == 60) { warning.createIntervalWarning("1").sendWarning(MainActivity.this);  }
@@ -331,7 +330,7 @@ public class MainActivity extends AppCompatActivity {
 				Toast.makeText(MainActivity.this, "Database error: "+databaseError, Toast.LENGTH_SHORT).show();
 			}
 		};
-		dbManager.getStatusRef().addValueEventListener(statusListener);
+		dbManager.getUserRef().addValueEventListener(statusListener);
 	}
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
@@ -353,7 +352,6 @@ public class MainActivity extends AppCompatActivity {
 			} catch(NullPointerException e){
 				Log.d(TAG, "startConnection: IOException" + e);
 			}
-
 	}
 	public void send(String message){
 		Log.d(TAG, "MainActivity sending: ''" + message + "''");
@@ -422,6 +420,8 @@ public class MainActivity extends AppCompatActivity {
 	}
 
 	public String getCurrentTime(){
-		return LocalTime.now().toString();
+		String time = LocalTime.now().toString().substring(0, 8);
+		return time;
 	}
+
 }
