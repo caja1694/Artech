@@ -84,7 +84,7 @@ public class HistoryActivity extends AppCompatActivity {
             }
         };
         Log.d(TAG, "databaseListener: ");
-        dbManager.baseReference.addValueEventListener(logListener);
+        dbManager.getBaseReference().addValueEventListener(logListener);
     }
 
     private void initRecyclerViewAdapter(){

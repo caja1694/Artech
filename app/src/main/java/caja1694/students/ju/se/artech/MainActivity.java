@@ -69,7 +69,7 @@ public class MainActivity extends AppCompatActivity {
 	Button sendButton;
 	Button historyAcitivity;
 
-	//Bluetooth
+	// Bluetooth
 	BluetoothAdapter btAdapter;
 	BluetoothDevice btDevice;
 	BluetoothConnector btConnector;
@@ -423,5 +423,4 @@ public class MainActivity extends AppCompatActivity {
 		String time = LocalTime.now().toString().substring(0, 8);
 		return time;
 	}
-
 }
