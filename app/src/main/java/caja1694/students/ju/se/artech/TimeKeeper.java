@@ -6,7 +6,6 @@ public class TimeKeeper extends AppCompatActivity {
 
     private long startTimeInMillis;
     private long timeLeftInMillis;
-    private String timeWorked;
 
     public TimeKeeper(){}
 
@@ -19,24 +18,12 @@ public class TimeKeeper extends AppCompatActivity {
         return startTimeInMillis;
     }
 
-    public void setStartTimeInMillis(long startTimeInMillis) {
-        this.startTimeInMillis = startTimeInMillis;
-    }
-
     public long getTimeLeftInMillis() {
         return timeLeftInMillis;
     }
 
     public void setTimeLeftInMillis(long timeLeftInMillis) {
         this.timeLeftInMillis = timeLeftInMillis;
-    }
-
-    public void setTimeWorked(String timeWorked) {
-        this.timeWorked = timeWorked;
-    }
-
-    public String getTimeWorked() {
-        return timeWorked;
     }
 
     public long getTimePastInMillis(){

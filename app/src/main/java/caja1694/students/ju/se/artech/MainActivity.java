@@ -8,6 +8,8 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import android.annotation.TargetApi;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothServerSocket;
+import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -62,6 +64,10 @@ public class MainActivity extends AppCompatActivity {
 	DatabaseManager dbManager;
 
 	Boolean isClockedIn = false;
+	Boolean warning1Sent = false;
+	Boolean warning2Sent = false;
+	Boolean warning3Sent = false;
+
 
 	// Buttons
 	Button reConnectButton;
@@ -113,7 +119,6 @@ public class MainActivity extends AppCompatActivity {
 	private final BroadcastReceiver brodCastReceiver2 = new BroadcastReceiver() {
 		public void onReceive(Context context, Intent intent) {
 			final String action = intent.getAction();
-
 			if (action.equals(BluetoothDevice.ACTION_BOND_STATE_CHANGED)) {
 				BluetoothDevice tmpBtDevice = intent.getParcelableExtra (BluetoothDevice.EXTRA_DEVICE);
 				if(tmpBtDevice.getBondState() == BluetoothDevice.BOND_BONDED){
@@ -126,6 +131,16 @@ public class MainActivity extends AppCompatActivity {
 					Log.d(TAG, "brodCastReceiver3: BOND_NONE");
 				}
 			}
+		}
+	};
+
+	private final BroadcastReceiver connectionReceiver = new BroadcastReceiver() {
+		@Override
+		public void onReceive(Context context, Intent intent) {
+			String error = intent.getStringExtra("Error");
+			updateStatusView("Lost bt Connection");
+			reConnectButton.setVisibility(View.VISIBLE);
+			Log.d(TAG, "onReceive: connectionReceiver: " + error);
 		}
 	};
 
@@ -157,9 +172,6 @@ public class MainActivity extends AppCompatActivity {
 		dbManager  = new DatabaseManager(NuclearTechnician, currentDate);
 		btAdapter = BluetoothAdapter.getDefaultAdapter();
 		incomingData = new StringBuilder();
-		radiation = new Radiation(30, BREAK_ROOM, NO_SUIT);
-		timeKeeper = new TimeKeeper((long)radiation.getMilliSecondsUntilLimit());
-		startTime = (long)radiation.getMilliSecondsUntilLimit();
 		totalTimePast = 0;
 		warning = new Warning();
 
@@ -167,11 +179,16 @@ public class MainActivity extends AppCompatActivity {
 		clockFunction();
 		enableBluetooth();
 		reConnectBtn();
+		changeActivity();
 		tester(); // Only for testing sending messages, should  be removed,
+
 		LocalBroadcastManager.getInstance(this).registerReceiver(dataReceiver, new IntentFilter("incomingData"));
+
 		IntentFilter intentFilter = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
 		registerReceiver(brodCastReceiver2, intentFilter);
-		changeActivity();
+
+		LocalBroadcastManager.getInstance(this).registerReceiver(connectionReceiver, new IntentFilter("BluetoothError"));
+
 	}
 
 	private void changeActivity(){
@@ -184,13 +201,34 @@ public class MainActivity extends AppCompatActivity {
 			}
 		});
 	}
-	private void clockFunction() {
-		clockInButton = findViewById(R.id.clock_in_button);
-		clockInButton.setOnClickListener(new View.OnClickListener() {
+	public void startBTConnection(BluetoothDevice device, UUID uuid){
+		Log.d(TAG, "startConnection: Innitialize bt connection");
+		btConnector.startClient(device, uuid);
+	}
+
+	// Tester, press the button to do something
+	private void tester(){
+		sendButton = findViewById(R.id.send_message_button);
+		sendButton.setVisibility(View.GONE);
+		sendButton.setText("Send");
+		sendButton.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				if (isClockedIn) { clockOut(); }
-				else { clockIn(); }
+				// Write code for testing something
+				//radiation.setRoomCoefficient(REACTOR_ROOM);
+				//reCalculateTimeLeftInMillis();
+				send("w");
+				//radiationLevelChange(radiation.getReactorOutputPerSecond()*3);
+			}
+		});
+	}
+
+	private void reConnectBtn(){
+		reConnectButton = findViewById(R.id.connect_button);
+		reConnectButton.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				enableBluetooth();
 			}
 		});
 	}
@@ -209,48 +247,52 @@ public class MainActivity extends AppCompatActivity {
 			registerReceiver(brodCastReciever1, btIntent);
 			if (btAdapter.isEnabled()) {
 				startConnection();
+				reConnectButton.setVisibility(View.GONE);
+				if(isClockedIn){
+					updateStatusView("Clocked In");
+				}
+				else{
+					updateStatusView("Clocked out");
+				}
 			}
 		} catch (NullPointerException e){
 			Log.d(TAG, "enableBluetooth: " + e.getMessage());
 		}
 	}
-	public void startBTConnection(BluetoothDevice device, UUID uuid){
-		Log.d(TAG, "startConnection: Innitialize bt connection");
-		btConnector.startClient(device, uuid);
+
+	public void checkForInterValWarning(){
+		// Make sure invervall warnings get sent if we jump past a certain time.. With maybe boolean warning 1 / 2 / 3 sent = true / false;
+		long timeLeftInseconds = timeKeeper.timeLeftInSeconds();
+		if(timeLeftInseconds <= 600 && timeLeftInseconds >= 300 && !warning1Sent){
+			warning.createIntervalWarning("10").sendWarning(MainActivity.this);
+			warning1Sent = true;
+		}
+		if(timeLeftInseconds <= 300 && timeLeftInseconds >= 60 && !warning2Sent){
+			warning.createIntervalWarning("5").sendWarning(MainActivity.this);
+			warning2Sent = true;
+		}
+		if(timeLeftInseconds <= 60 && timeLeftInseconds >= 1 && !warning3Sent) {
+			warning.createIntervalWarning("1").sendWarning(MainActivity.this);
+			warning3Sent = true;
+		}
 	}
 
-	// Tester, press the button to do something
-	private void tester(){
-		sendButton = findViewById(R.id.send_message_button);
-		sendButton.setText("Send");
-		sendButton.setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				// Write code for testing something
-				//radiation.setRoomCoefficient(REACTOR_ROOM);
-				//reCalculateTimeLeftInMillis();
-				send("w");
-			}
-		});
+	public void reCalculateTimeLeftInMillis(){
+		long timeLeft =  (long)radiation.getMilliSecondsUntilLimit() - totalTimePast;
+		Log.d(TAG, "reCalculateTimeLeftInMillis: timeLeft: " + timeLeft);
+		timeKeeper = new TimeKeeper(timeLeft);
+		if(isClockedIn) {
+			restartTimer();
+		}
 	}
 
-	private void reConnectBtn(){
-		reConnectButton = findViewById(R.id.connect_button);
-		reConnectButton.setVisibility(View.GONE);
-		reConnectButton.setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				enableBluetooth();
-			}
-		});
-	}
 	public void startTimer(){
 		mCountDownTimer = new CountDownTimer(timeKeeper.getStartTimeInMillis(), ONE_SECOND) {
 			@Override
 			public void onTick(long millisUntilFinished) {
 				timeKeeper.setTimeLeftInMillis(millisUntilFinished);
 				totalTimePast += ONE_SECOND;
-				updateTimer(timeKeeper.toString());
+				updateTimerView(timeKeeper.toString());
 				checkForInterValWarning();
 				radiation.setTodaysExposure(totalTimePast);
 			}
@@ -264,41 +306,50 @@ public class MainActivity extends AppCompatActivity {
 			}
 		}.start();
 	}
-	public void checkForInterValWarning(){
-		// Make sure invervall warnings get sent if we jump past a certain time.. With maybe boolean warning 1 / 2 / 3 sent = true / false;
-		if(timeKeeper.timeLeftInSeconds() == 600){ warning.createIntervalWarning("10").sendWarning(MainActivity.this); }
-		if(timeKeeper.timeLeftInSeconds() == 300){ warning.createIntervalWarning("5").sendWarning(MainActivity.this);  }
-		if(timeKeeper.timeLeftInSeconds() == 60) { warning.createIntervalWarning("1").sendWarning(MainActivity.this);  }
-	}
 	public void stopTimer(){
 		mCountDownTimer.cancel();
-	}
-	public void reCalculateTimeLeftInMillis(){
-		long timeLeft =  (long)radiation.getMilliSecondsUntilLimit() - totalTimePast;
-		Log.d(TAG, "reCalculateTimeLeftInMillis: timeLeft: " + timeLeft);
-		timeKeeper = new TimeKeeper(timeLeft);
-		restartTimer();
 	}
 	public void restartTimer(){
 		stopTimer();
 		startTimer();
 	}
-	public void updateTimer(String timeLeft){
+	public void updateTimerView(String timeLeft){
 		TextView countdownText = findViewById(R.id.countdownTimer);
 		countdownText.setText(timeLeft);
+	}
+	public void updateStatusView(String text){
+		TextView textView = findViewById(R.id.status);
+		textView.setText(text);
+	}
+
+	private void clockFunction() {
+		clockInButton = findViewById(R.id.clock_in_button);
+		clockInButton.setVisibility(View.GONE); // This function should be removed
+		clockInButton.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				if (isClockedIn) { clockOut(); }
+				else { clockIn(); }
+			}
+		});
 	}
 	public void clockIn(){
 		if(!isClockedIn) {
 			isClockedIn = true;
-			updateStatusText("Clocked In");
+			updateStatusView("Clocked In");
 			dbManager.addClockInTime(getCurrentTime());
+
+			radiation = new Radiation(30, BREAK_ROOM, NO_SUIT);
+			timeKeeper = new TimeKeeper((long)radiation.getMilliSecondsUntilLimit());
+			startTime = (long)radiation.getMilliSecondsUntilLimit();
+
 			startTimer();
 		}
 	}
 	public void clockOut(){
 		if(isClockedIn) {
 			isClockedIn = false;
-			updateStatusText("Clocked Out");
+			updateStatusView("Clocked Out");
 			String shiftTime = timeKeeper.toString(totalTimePast);
 			dbManager.setShiftTime(shiftTime);
 			dbManager.setRadiationExposure(String.valueOf(radiation.getTodaysExposure()));
@@ -306,10 +357,7 @@ public class MainActivity extends AppCompatActivity {
 			stopTimer();
 		}
 	}
-	public void updateStatusText(String text){
-		TextView textView = findViewById(R.id.status);
-		textView.setText(text);
-	}
+
 	public void valueEventListener(){
 		Log.d(TAG, "valueEventListener: Listening for status updates in database");
 		ValueEventListener statusListener = new ValueEventListener() {
@@ -328,6 +376,7 @@ public class MainActivity extends AppCompatActivity {
 			@Override
 			public void onCancelled(@NonNull DatabaseError databaseError) {
 				Toast.makeText(MainActivity.this, "Database error: "+databaseError, Toast.LENGTH_SHORT).show();
+				updateStatusView("Database error");
 			}
 		};
 		dbManager.getUserRef().addValueEventListener(statusListener);
@@ -337,7 +386,6 @@ public class MainActivity extends AppCompatActivity {
 		super.onActivityResult(requestCode, resultCode, data);
 		if(resultCode == 0){
 			reConnectButton.setVisibility(View.VISIBLE);
-			// Allow user to re-reConnectBtn
 		}
 	}
 	public void startConnection(){
@@ -361,8 +409,12 @@ public class MainActivity extends AppCompatActivity {
 	public void handleIncomingData(String data){
 		Log.d(TAG, "handleIncomingData: data: " + data);
 			if(data.length() > 1){
-				Log.d(TAG, "handleIncomingData: data > 1: " + Double.valueOf(data));
-				radiationLevelChange(Double.valueOf(data));
+				try {
+					Log.d(TAG, "handleIncomingData: data > 1: " + Double.valueOf(data));
+					radiationLevelChange(Double.valueOf(data));
+				} catch (NumberFormatException e){
+					Log.d(TAG, "handleIncomingData: NumberFormatException: got: " + data + "expected: Digits only");
+				}
 			}
 			switch (data) {
 				case "a":
@@ -414,9 +466,12 @@ public class MainActivity extends AppCompatActivity {
 		}
 
 	}
+
 	public void radiationLevelChange(Double radiationLevel){
-		radiation.setReactorOutputPerSecond(radiationLevel);
-		reCalculateTimeLeftInMillis();
+		if(isClockedIn) {
+			radiation.setReactorOutputPerSecond(radiationLevel);
+			reCalculateTimeLeftInMillis();
+		}
 	}
 
 	public String getCurrentTime(){

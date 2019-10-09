@@ -7,6 +7,7 @@ import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.nfc.Tag;
 import android.util.Log;
 
@@ -77,7 +78,8 @@ public class BluetoothConnector {
             } catch (NullPointerException e){
                 Log.d(TAG, "run: No bluetooth connection" + e.getMessage());
             }
-            connected(btSocket, btDevice);
+            connected(btSocket, btDevice);  // Put this inside try block and set intent to
+                                            // brodcaster in main in catch to allow user to try and reConnect
         }
         public void cancel(){
             try {
@@ -117,7 +119,7 @@ public class BluetoothConnector {
             try {
                 progressDialog.dismiss();
             }catch (NullPointerException e){
-                Log.d(TAG, "ThreadConnected: Trying to dissmiss dialogbox, nothing to worry about.");
+                Log.d(TAG, "ThreadConnected: Trying to dismiss dialogbox, nothing to worry about.");
             }
 
             try{
@@ -151,6 +153,9 @@ public class BluetoothConnector {
                     Log.d(TAG, "run: created intent: " + intent.getExtras());
                 } catch (IOException e) {
                     Log.d(TAG, "run: error reading InputStream" + e.getMessage());
+                    Intent intent = new Intent("BluetoothError");
+                    LocalBroadcastManager.getInstance(mContext).sendBroadcast(intent);
+                    intent.putExtra("Error", e.getMessage());
                     break;
                 }
             }

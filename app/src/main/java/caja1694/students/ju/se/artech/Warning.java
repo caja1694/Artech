@@ -25,7 +25,7 @@ public class Warning extends Application {
     }
     public Warning createIntervalWarning(String minutes){
         this.title = "" + minutes + " minutes left";
-        this.body = "You have "+ minutes + " minutes until you have reached the daily radiation limit";
+        this.body = "You have less than "+ minutes + " minutes until you have reached the daily radiation limit";
         return this;
     }
 
