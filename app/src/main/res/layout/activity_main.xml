@@ -29,26 +29,9 @@
         android:layout_marginStart="153dp"
         android:layout_marginTop="338dp"
         android:layout_marginEnd="154dp"
-        android:layout_marginBottom="172dp"
         android:gravity="center"
         android:text="Timer"
         android:textSize="40dp"
-        app:layout_constraintBottom_toTopOf="@+id/clock_in_button"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <Button
-        android:id="@+id/clock_in_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="162dp"
-        android:layout_marginTop="564dp"
-        android:layout_marginEnd="161dp"
-        android:layout_marginBottom="119dp"
-        android:text="@string/Clock"
-        android:textSize="20dp"
-        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -64,20 +47,6 @@
         android:visibility="gone"
         android:text="Reconnect"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <Button
-        android:id="@+id/send_message_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="283dp"
-        android:layout_marginTop="242dp"
-        android:layout_marginEnd="40dp"
-        android:layout_marginBottom="322dp"
-        android:text="Button"
-        app:layout_constraintBottom_toTopOf="@+id/connect_button"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />

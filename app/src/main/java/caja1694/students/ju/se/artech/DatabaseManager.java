@@ -32,7 +32,7 @@ public class DatabaseManager {
         getUserRef().child("log").child("Shift time").setValue(time);
     }
     public void setRadiationExposure(String radiationExposure){
-        getUserRef().child("Radiation exposure").setValue(radiationExposure);
+        getUserRef().child("Reactor output level change").push().setValue(radiationExposure);
     }
 
     public DatabaseReference getBaseReference() {

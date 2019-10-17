@@ -7,8 +7,6 @@ public class TimeKeeper extends AppCompatActivity {
     private long startTimeInMillis;
     private long timeLeftInMillis;
 
-    public TimeKeeper(){}
-
     public TimeKeeper(long startTimeInMillis) {
         this.startTimeInMillis = startTimeInMillis;
         this.timeLeftInMillis = startTimeInMillis;

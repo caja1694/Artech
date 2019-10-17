@@ -71,9 +71,6 @@ public class HistoryActivity extends AppCompatActivity {
                     } catch (NullPointerException e){
                         Log.d(TAG, "onDataChange: " + e.getMessage());
                     }
-                    //if(date.equals(currentDate)){
-                      //  initRecyclerViewAdapter();
-                    //}
                 }
                 initRecyclerViewAdapter();
             }

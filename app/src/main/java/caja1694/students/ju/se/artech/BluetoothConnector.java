@@ -61,7 +61,6 @@ public class BluetoothConnector {
                 Log.d(TAG, "run: connect thread failed" + e.getMessage());
             }
             btSocket = tempSocket;
-            //btAdapter.cancelDiscovery();
 
             try {
                 Log.d(TAG, "run: Connect thread trying to connect to btSocket...");
@@ -78,8 +77,7 @@ public class BluetoothConnector {
             } catch (NullPointerException e){
                 Log.d(TAG, "run: No bluetooth connection" + e.getMessage());
             }
-            connected(btSocket, btDevice);  // Put this inside try block and set intent to
-                                            // brodcaster in main in catch to allow user to try and reConnect
+            connected(btSocket, btDevice);
         }
         public void cancel(){
             try {
@@ -119,7 +117,7 @@ public class BluetoothConnector {
             try {
                 progressDialog.dismiss();
             }catch (NullPointerException e){
-                Log.d(TAG, "ThreadConnected: Trying to dismiss dialogbox, nothing to worry about.");
+                Log.d(TAG, "ThreadConnected: Trying to dismiss dialog box, nothing to worry about.");
             }
 
             try{
